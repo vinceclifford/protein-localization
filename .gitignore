@@ -1,16 +1,49 @@
+# Data — embeddings are large and reproducible via bio_embeddings.
 data
-.idea
-__pycache__
+data_files/*.h5
+data_files/*.h5py
+data_files/*.hdf5
+*.h5
+*.h5py
+*.hdf5
+
+# Training artifacts — regenerated from configs.
 runs
+sweeps
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+build/
+dist/
+
+# IDE / tooling
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Old project conventions
 bsub.yaml
 bsub.yml
+bsub*
 stderr.log
 stdout.log
-bsub*
-.npy
-.csv
-.png
-.jpg
-
 temp
 trained_model_weights
+
+# Misc artifacts
+*.npy
+*.csv
+*.png
+*.jpg
+*.log
+.ipynb_checkpoints/

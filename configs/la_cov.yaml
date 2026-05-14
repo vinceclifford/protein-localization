@@ -1,6 +1,7 @@
-experiment_name: 'localization_prediction_T5_Embedding'
+experiment_name: 'la_cov_ProtT5'
 
 seed: 123
+eval_on_test: True
 num_epochs: 5000
 batch_size: 150
 log_iterations: 100
@@ -9,19 +10,27 @@ min_train_acc: 99.6
 optimizer_parameters:
   lr: 5.0e-5
 
-# Paths to Data
+# Paths to Embeddings (per-residue ProtT5)
 train_embeddings: 'data_files/deeploc_our_train_set.h5'
 val_embeddings:   'data_files/deeploc_our_val_set.h5'
 test_embeddings:  'data_files/deeploc_test_set.h5'
 
+# Paths to Fasta files
 train_remapping: 'data_files/deeploc_our_train_set.fasta'
 val_remapping:   'data_files/deeploc_our_val_set.fasta'
 test_remapping:  'data_files/deeploc_test_set.fasta'
+
 key_format: 'fasta_descriptor'
 
 # Model parameters
-model_type: 'LightAttention'
+# LightAttention's two branches (o1 = attention-weighted sum, o2 = max) + bilinear
+# covariance C in R^{d_c x d_c} concatenated. Pooled size = 2*d + d_c^2.
+# Size sweep from the spec: proj_dim (d_c) in {8, 16, 24, 32, 48}.
+model_type: 'LightAttentionCov'
 model_parameters:
-  dropout: 0.25
-  kernel_size: 9
   output_dim: 10
+  dropout: 0.25
+  conv_dropout: 0.25
+  kernel_size: 9
+  hidden_dim: 32
+  proj_dim: 32        # d_c

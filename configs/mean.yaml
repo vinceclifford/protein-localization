@@ -1,27 +1,32 @@
-experiment_name: 'localization_prediction_T5_Embedding'
+experiment_name: 'mean_pooling_ProtT5'
 
-seed: 123
+seed: 969
+eval_on_test: True
 num_epochs: 5000
-batch_size: 150
+batch_size: 256
 log_iterations: 100
 patience: 80
-min_train_acc: 99.6
 optimizer_parameters:
-  lr: 5.0e-5
+  lr: 1.0e-4
 
-# Paths to Data
+# Paths to Embeddings (per-residue ProtT5)
 train_embeddings: 'data_files/deeploc_our_train_set.h5'
 val_embeddings:   'data_files/deeploc_our_val_set.h5'
 test_embeddings:  'data_files/deeploc_test_set.h5'
 
+# Paths to Fasta files
 train_remapping: 'data_files/deeploc_our_train_set.fasta'
 val_remapping:   'data_files/deeploc_our_val_set.fasta'
 test_remapping:  'data_files/deeploc_test_set.fasta'
+
 key_format: 'fasta_descriptor'
 
 # Model parameters
-model_type: 'LightAttention'
+model_type: 'PoolingFFN'
 model_parameters:
-  dropout: 0.25
-  kernel_size: 9
   output_dim: 10
+  hidden_dim: 32
+  n_hidden_layers: 0
+  dropout: 0.25
+  pooling: 'mean'
+  proj_dim: 0          # 0 = no projection, pool directly on the 1024-dim embedding

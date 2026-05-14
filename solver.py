@@ -24,10 +24,15 @@ class Solver():
     def __init__(self, model, args, optim=torch.optim.Adam, loss_func=JointCrossEntropy, weight=None, eval=False):
         self.optim = optim(list(model.parameters()), **args.optimizer_parameters)
         self.args = args
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda:0")
+        elif torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.model = model.to(self.device)
         if args.checkpoint and not eval:
-            checkpoint = torch.load(os.path.join(args.checkpoint, 'checkpoint.pt'), map_location=self.device)
+            checkpoint = torch.load(os.path.join(args.checkpoint, 'checkpoint.pt'), map_location=self.device, weights_only=False)
             self.writer = SummaryWriter(args.checkpoint)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optim.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -113,7 +118,7 @@ class Solver():
 
         if eval_data:  # do evaluation on the test data if a eval_data is provided
             # load checkpoint of best model to do evaluation
-            checkpoint = torch.load(os.path.join(self.writer.log_dir, 'checkpoint.pt'), map_location=self.device)
+            checkpoint = torch.load(os.path.join(self.writer.log_dir, 'checkpoint.pt'), map_location=self.device, weights_only=False)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.evaluation(eval_data, filename='val_data_after_training')
 

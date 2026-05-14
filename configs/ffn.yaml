@@ -8,14 +8,17 @@ patience: 80
 optimizer_parameters:
   lr: 1.0e-4
 
-# Paths to BERT
-train_embeddings: 'data/embeddings/train_reduced.h5'
-val_embeddings: 'data/embeddings/val_reduced.h5'
-test_embeddings: 'data/embeddings/test_reduced.h5'
+# Paths to Embeddings
+train_embeddings: 'data_files/deeploc_our_train_set.h5'
+val_embeddings: 'data_files/deeploc_our_val_set.h5'
+test_embeddings: 'data_files/deeploc_test_set.h5'
 
-train_remapping: 'data/embeddings/train_remapped.fasta'
-val_remapping: 'data/embeddings/val_remapped.fasta'
-test_remapping: 'data/embeddings/test_remapped.fasta'
+# Paths to Fasta files
+train_remapping: 'data_files/deeploc_our_train_set.fasta'
+val_remapping: 'data_files/deeploc_our_val_set.fasta'
+test_remapping: 'data_files/deeploc_test_set.fasta'
+
+key_format: 'fasta_descriptor'
 
 # Model parameters
 model_type: 'FFN'
