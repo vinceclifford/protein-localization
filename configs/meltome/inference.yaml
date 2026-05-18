@@ -1,0 +1,28 @@
+output_files_name: 'meltome_mixed_test_set'
+
+log_iterations: 100
+n_draws: 1000
+batch_size: 64
+checkpoints_list: [
+  # '/anvme/workspace/b305bb10-rgb_x/lightattention/runs/PoolingFFN_meltome_mixed_cov_pooling_ProtT5_17-05_07-41-29',
+  # '/anvme/workspace/b305bb10-rgb_x/lightattention/runs/PoolingFFN_meltome_mixed_hybrid_pooling_ProtT5_17-05_08-20-33',
+  # '/anvme/workspace/b305bb10-rgb_x/lightattention/runs/PoolingFFN_meltome_mixed_mean_pooling_ProtT5_17-05_01-06-26',
+  '/anvme/workspace/b305bb10-rgb_x/lightattention/runs/LightAttention_meltome_mixed_light_attention_ProtT5_17-05_07-09-42'
+]
+
+embeddings: 'data_files/flip_meltome/prepared/human_cell/human_cell_test.h5'
+remapping: 'data_files/flip_meltome/prepared/human_cell/human_cell_test_remapped.fasta'
+key_format: 'hash'
+max_length: 6000
+embedding_mode: 'lm'
+
+optimizer: 'Adam'
+optimizer_parameters:
+  lr: 1.0e-4
+loss_function: 'MeltomeMSELoss'
+
+model_type: 'LightAttention'
+model_parameters:
+  dropout: 0.25
+  kernel_size: 9
+  output_dim: 1

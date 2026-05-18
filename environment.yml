@@ -1,4 +1,4 @@
-name: bio
+prefix: /anvme/workspace/b305bb10-rgb_x/lightattention/bio
 channels:
   - pytorch
   - defaults
@@ -7,18 +7,23 @@ dependencies:
   - h5py
   - hdf5
   - matplotlib
+  - numpy
+  - pandas
+  - pip
   - python
   - pytorch
+  - pyyaml
+  - scikit-learn
+  - scipy
   - seaborn
   - torchaudio
   - torchvision
   - tqdm
   - pip:
-    - numpy
     - opt-einsum
     - pickleshare
     - pyaml
-    - pyyaml
-    - scikit-learn
-    - scipy
-    - sklearn
+    - sparsemax
+    - tensorboard>=2.20
+    - transformers
+    - sentencepiece

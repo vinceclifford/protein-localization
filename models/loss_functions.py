@@ -83,3 +83,29 @@ class SolCrossEntropy(nn.Module):
             """
         solubility_loss = F.cross_entropy(prediction[..., -2:], solubility)
         return solubility_loss, torch.tensor([0]), solubility_loss
+
+
+class MeltomeMSELoss(nn.Module):
+    def __init__(self, weight=None) -> None:
+        super(MeltomeMSELoss, self).__init__()
+        self.weight = weight
+
+    def forward(self, prediction: Tensor, target: Tensor, *args) -> Tensor:
+        """
+            MSE loss for FLIP Meltome regression.
+
+            Args:
+                prediction: model output with shape [batch_size] or [batch_size, 1]
+                target: continuous Meltome target with shape [batch_size]
+
+            Returns:
+                loss: mean squared error
+
+            """
+        prediction = prediction.squeeze(-1).float()
+        target = target.float()
+        return F.mse_loss(prediction, target)
+
+
+class MSELoss(MeltomeMSELoss):
+    pass

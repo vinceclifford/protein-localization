@@ -15,6 +15,8 @@ sweeps
 __pycache__
 *.py[cod]
 *.egg-info/
+bio
+bio_embeddings_env
 .venv/
 venv/
 env/
@@ -39,6 +41,11 @@ stderr.log
 stdout.log
 temp
 trained_model_weights
+embedder_model
+data_files/bio_embeddings_runs/
+data_files/flip_meltome/
+data_files/*_remapped.fasta
+data_files/*.h5
 
 # Misc artifacts
 *.npy
