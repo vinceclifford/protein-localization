@@ -182,14 +182,11 @@ PIPELINE B — Layer sweep (Experiment 3)
 (`mean` has no d_c so contributes 1 × 3 × 2 = 6 runs; `cov` and `hybrid` contribute 5 × 3 × 2 = 30 each.)
 
 ```bash
-# Run all three seeds for each task
-python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 123 --dcs 8 16 24 32 48
-python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 969 --dcs 8 16 24 32 48
-python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 309 --dcs 8 16 24 32 48
-
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 123 --dcs 8 16 24 32 48
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 969 --dcs 8 16 24 32 48
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 309 --dcs 8 16 24 32 48
+python scripts/run_sweep.py \
+    --tasks loc meltome \
+    --methods mean cov hybrid \
+    --seeds 123 969 309 \
+    --dcs 8 16 24 32 48
 ```
 
 Collect and visualise:

@@ -2,22 +2,13 @@
 """
 Run the full pooling/dimension sweep sequentially.
 
-Sweep:
-    - mean baseline (no d_c)
-    - covariance pooling, d_c in {8, 16, 24, 32, 48}
-    - hybrid pooling,     d_c in {8, 16, 24, 32, 48}
-    = 11 runs total, all at seed 123.
-
-Each run is launched as a subprocess so its stdout streams live to a per-run log
-file under sweeps/<sweep_tag>/logs/. The base YAML configs are duplicated to
-temporary configs with the proj_dim and experiment_name overridden.
+Supports multiple tasks and seeds in one invocation:
 
 Usage:
     python scripts/run_sweep.py
-    python scripts/run_sweep.py --seed 123 --tag overnight
-    python scripts/run_sweep.py --methods mean cov           # subset
-    python scripts/run_sweep.py --dcs 8 16 32                # subset of d_c
-    python scripts/run_sweep.py --task meltome               # Meltome regression sweep
+    python scripts/run_sweep.py --tasks loc meltome --seeds 123 969 309
+    python scripts/run_sweep.py --methods mean cov hybrid --dcs 8 16 32
+    python scripts/run_sweep.py --tag overnight
 """
 import argparse
 import datetime
@@ -97,14 +88,16 @@ def run_one(config_path: Path, log_path: Path, train_script: str = 'train.py') -
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=123)
+    parser.add_argument('--seeds', nargs='+', type=int, default=[123],
+                        help='One or more random seeds, e.g. --seeds 123 969 309')
     parser.add_argument('--tag', default=None,
                         help='Sweep folder name (default: timestamped)')
     parser.add_argument('--methods', nargs='+', default=['mean', 'cov', 'hybrid', 'la', 'la_cov'],
                         choices=['mean', 'cov', 'hybrid', 'la', 'la_cov'])
     parser.add_argument('--dcs', nargs='+', type=int, default=DC_VALUES)
-    parser.add_argument('--task', default='loc', choices=['loc', 'meltome'],
-                        help='Task to sweep: loc (localization) or meltome (regression)')
+    parser.add_argument('--tasks', nargs='+', default=['loc'],
+                        choices=['loc', 'meltome'],
+                        help='One or more tasks, e.g. --tasks loc meltome')
     args = parser.parse_args()
 
     tag = args.tag or datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -112,37 +105,41 @@ def main() -> None:
     (sweep_dir / 'configs').mkdir(parents=True, exist_ok=True)
     (sweep_dir / 'logs').mkdir(parents=True, exist_ok=True)
     print(f'Sweep dir: {sweep_dir}')
+    print(f'Tasks:   {args.tasks}')
+    print(f'Seeds:   {args.seeds}')
+    print(f'Methods: {args.methods}')
+    print(f'd_c:     {args.dcs}')
 
-    task_configs = BASE_CONFIGS[args.task]
-    train_script = TRAIN_SCRIPTS[args.task]
-    print(f'Task: {args.task}  (train script: {train_script})')
-
-    plan = build_run_plan(args.methods, args.dcs)
-    print(f'Plan: {len(plan)} runs')
-    for method, dc in plan:
-        tag_str = method if dc is None else f'{method}_dc{dc}'
-        print(f'  - {tag_str}')
+    method_plan = build_run_plan(args.methods, args.dcs)
+    total = len(args.tasks) * len(args.seeds) * len(method_plan)
+    print(f'\nTotal runs: {total}  ({len(args.tasks)} tasks × {len(args.seeds)} seeds × {len(method_plan)} method/dc combos)\n')
 
     summary_lines = []
-    for i, (method, dc) in enumerate(plan, 1):
-        tag_str = method if dc is None else f'{method}_dc{dc}'
-        exp_name = f'{args.task}_{tag_str}_seed{args.seed}'
-        config_path = sweep_dir / 'configs' / f'{tag_str}.yaml'
-        log_path = sweep_dir / 'logs' / f'{tag_str}.log'
+    run_idx = 0
+    for task in args.tasks:
+        task_configs = BASE_CONFIGS[task]
+        train_script = TRAIN_SCRIPTS[task]
+        for seed in args.seeds:
+            for method, dc in method_plan:
+                run_idx += 1
+                tag_str  = method if dc is None else f'{method}_dc{dc}'
+                exp_name = f'{task}_{tag_str}_seed{seed}'
+                config_path = sweep_dir / 'configs' / f'{task}_{tag_str}_seed{seed}.yaml'
+                log_path    = sweep_dir / 'logs'    / f'{task}_{tag_str}_seed{seed}.log'
 
-        make_config(task_configs[method], config_path, method, dc, args.seed, exp_name)
+                make_config(task_configs[method], config_path, method, dc, seed, exp_name)
 
-        print(f'\n[{i}/{len(plan)}] {tag_str}')
-        t0 = datetime.datetime.now()
-        rc = run_one(config_path, log_path, train_script)
-        elapsed = (datetime.datetime.now() - t0).total_seconds() / 60.0
-        status = 'ok' if rc == 0 else f'FAILED rc={rc}'
-        line = f'{tag_str:20s}  seed={args.seed}  rc={rc:3d}  time={elapsed:6.1f}min'
-        summary_lines.append(line)
-        print(f'    {status}  ({elapsed:.1f} min)')
+                print(f'[{run_idx:3d}/{total}] task={task}  seed={seed}  {tag_str}')
+                t0 = datetime.datetime.now()
+                rc = run_one(config_path, log_path, train_script)
+                elapsed = (datetime.datetime.now() - t0).total_seconds() / 60.0
+                status = 'ok' if rc == 0 else f'FAILED rc={rc}'
+                line = f'{task}  {tag_str:20s}  seed={seed}  rc={rc:3d}  time={elapsed:6.1f}min'
+                summary_lines.append(line)
+                print(f'    {status}  ({elapsed:.1f} min)')
 
-        with open(sweep_dir / 'summary.txt', 'w') as f:
-            f.write('\n'.join(summary_lines) + '\n')
+                with open(sweep_dir / 'summary.txt', 'w') as f:
+                    f.write('\n'.join(summary_lines) + '\n')
 
     print('\nSweep complete.')
     print('Summary:')
