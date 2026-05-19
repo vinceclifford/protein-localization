@@ -159,7 +159,7 @@ PIPELINE A — Pooling method + d_c sweep (Experiments 1 & 2)
   plot_sweep.py                       sweep_dc_curve.png + sweep_bars.png
 
 
-PIPELINE B — Layer sweep (Experiment 4)
+PIPELINE B — Layer sweep (Experiment 3)
 
   embed_layers_h5.py --layers 6 12 18 24    per-layer H5 files (one-time)
           │
@@ -176,28 +176,20 @@ PIPELINE B — Layer sweep (Experiment 4)
 
 ## Experiments
 
-### Experiment 1 — Head-to-head benchmark
+### Experiment 1 — d_c sweep (mean / cov / hybrid, 3 seeds, both tasks)
 
-4 methods × 2 tasks × 3 seeds = 24 main results.
-
-```bash
-# Seed 1 (meltome)
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 123
-# Seed 2
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 969
-# Seed 3
-python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 309
-
-# Repeat for --task loc
-```
-
-### Experiment 2 — Size-matched efficiency sweep
-
-Vary d_c ∈ {8, 16, 24, 32, 48}; plot metric vs. embedding size d_c².
+3 methods × 5 d_c values × 3 seeds × 2 tasks = 90 runs.  
+(`mean` has no d_c so contributes 1 × 3 × 2 = 6 runs; `cov` and `hybrid` contribute 5 × 3 × 2 = 30 each.)
 
 ```bash
-python scripts/run_sweep.py --task meltome --methods cov hybrid la_cov --dcs 8 16 24 32 48
-python scripts/run_sweep.py --task loc     --methods cov hybrid la_cov --dcs 8 16 24 32 48
+# Run all three seeds for each task
+python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 123 --dcs 8 16 24 32 48
+python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 969 --dcs 8 16 24 32 48
+python scripts/run_sweep.py --task loc     --methods mean cov hybrid --seed 309 --dcs 8 16 24 32 48
+
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 123 --dcs 8 16 24 32 48
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 969 --dcs 8 16 24 32 48
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid --seed 309 --dcs 8 16 24 32 48
 ```
 
 Collect and visualise:
@@ -206,17 +198,17 @@ python scripts/collect_results.py --sweep sweeps/<tag>
 python scripts/plot_sweep.py      --sweep sweeps/<tag>
 ```
 
-Outputs `sweep_dc_curve.png` (metric vs d_c per method) and `sweep_bars.png`.
+Outputs `sweep_dc_curve.png` (metric vs d_c² per method, averaged over seeds) and `sweep_bars.png`.
 
-### Experiment 3 — Supervised vs. unsupervised bottleneck
+### Experiment 2 — Supervised vs. unsupervised bottleneck
 
 Train L, R to reconstruct XᵀX (unsupervised), freeze them, then reuse across tasks. Compare against per-task supervised bottlenecks.
 
-> Not yet implemented — Experiments 1, 2, and 4 are fully operational.
+> Not yet implemented.
 
-### Experiment 4 — Layer sweep
+### Experiment 3 — Layer sweep
 
-Repeat the head-to-head comparison at a handful of ProtX layers (early / middle / late / last) to test whether covariance pooling's advantage holds across model depth.
+Repeat the comparison at a handful of ProtT5 layers (early / middle / late / last) to test whether covariance pooling's advantage holds across model depth.
 
 **Step 1 — generate per-layer embeddings (one-time):**
 ```bash
@@ -233,7 +225,7 @@ python scripts/run_layer_sweep.py \
     --train-fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
     --val-fasta   data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
     --test-fasta  data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
-    --task meltome --methods mean cov hybrid la la_cov --layers 6 12 18 24
+    --task meltome --methods mean cov hybrid --layers 6 12 18 24
 ```
 
 **Step 3 — plot:**
@@ -258,6 +250,6 @@ All metrics include bootstrap standard errors (200 resamples, `--n-draws`).
 
 ## Stretch goals
 
-- Unsupervised covariance bottleneck (Experiment 3)
+- Unsupervised covariance bottleneck (Experiment 2)
 - Pool PaRTI (PageRank-based pooling)
 - Binary membrane/soluble classification as a third task
