@@ -1,0 +1,34 @@
+experiment_name: 'cov_pooling_ProtT5'
+
+seed: 123
+eval_on_test: True
+num_epochs: 5000
+batch_size: 150
+log_iterations: 100
+patience: 80
+optimizer_parameters:
+  lr: 1.0e-4
+
+# Paths to Embeddings (per-residue ProtT5)
+train_embeddings: 'data_files/deeploc_our_train_set.h5'
+val_embeddings:   'data_files/deeploc_our_val_set.h5'
+test_embeddings:  'data_files/deeploc_test_set.h5'
+
+# Paths to Fasta files
+train_remapping: 'data_files/deeploc_our_train_set.fasta'
+val_remapping:   'data_files/deeploc_our_val_set.fasta'
+test_remapping:  'data_files/deeploc_test_set.fasta'
+
+key_format: 'fasta_descriptor'
+
+# Model parameters
+# Bilinear covariance: C = (1/L)(XL)^T(XR) in R^{d_c x d_c}, flattened to d_c^2 features.
+# Size sweep from the spec: proj_dim (d_c) in {8, 16, 24, 32, 48}.
+model_type: 'PoolingFFN'
+model_parameters:
+  output_dim: 10
+  hidden_dim: 32
+  n_hidden_layers: 0
+  dropout: 0.25
+  pooling: 'cov_unsup'
+  proj_dim: 32        # d_c; cov features = d_c^2 = 1024

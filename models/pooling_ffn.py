@@ -20,15 +20,16 @@ class PoolingFFN(nn.Module):
 
     def __init__(self, embeddings_dim: int = 1024, output_dim: int = 10,
                  hidden_dim: int = 32, n_hidden_layers: int = 0, dropout: float = 0.25,
-                 pooling: str = 'mean', proj_dim: int = 32):
+                 pooling: str = 'mean', proj_dim: int = 32, cov_unsup_checkpoint: str = None,
+                freeze_cov_projections: bool = True):
         super().__init__()
-        if pooling not in ('mean', 'cov', 'hybrid'):
-            raise ValueError(f"pooling must be 'mean'|'cov'|'hybrid', got {pooling!r}")
+        if pooling not in ('mean', 'cov', 'hybrid', 'cov_unsup'):
+            raise ValueError(f"pooling must be 'mean'|'cov'|'hybrid'|'cov_unsup', got {pooling!r}")
         self.pooling = pooling
         self.embeddings_dim = embeddings_dim
         self.proj_dim = proj_dim
 
-        if pooling in ('cov', 'hybrid'):
+        if pooling in ('cov', 'hybrid', 'cov_unsup'):
             # L_mat and R_mat in R^{d x d_c}. Implemented as nn.Linear over the
             # channel dim (faster on MPS than Conv1d kernel_size=1). Applied to
             # x.transpose(-2, -1) of shape [B, L, d] -> [B, L, d_c].
@@ -39,8 +40,37 @@ class PoolingFFN(nn.Module):
             pooled_dim = embeddings_dim
         elif pooling == 'cov':
             pooled_dim = proj_dim * proj_dim
-        else:
+        elif pooling == 'hybrid':
             pooled_dim = embeddings_dim + proj_dim * proj_dim
+        else:  # cov_unsup
+            if cov_unsup_checkpoint is None:
+                raise ValueError(
+                    "pooling='cov_unsup' requires cov_unsup_checkpoint pointing to pretrained L/R weights."
+                )
+
+            checkpoint = torch.load(cov_unsup_checkpoint, map_location='cpu')
+
+            if checkpoint.get('proj_dim') != proj_dim:
+                raise ValueError(
+                    f"Checkpoint proj_dim={checkpoint.get('proj_dim')} but model proj_dim={proj_dim}"
+                )
+
+            if checkpoint.get('embeddings_dim') != embeddings_dim:
+                raise ValueError(
+                    f"Checkpoint embeddings_dim={checkpoint.get('embeddings_dim')} "
+                    f"but model embeddings_dim={embeddings_dim}"
+                )
+
+            self.proj_L.load_state_dict(checkpoint['proj_L_state_dict'])
+            self.proj_R.load_state_dict(checkpoint['proj_R_state_dict'])
+
+            if freeze_cov_projections:
+                for p in self.proj_L.parameters():
+                    p.requires_grad = False
+                for p in self.proj_R.parameters():
+                    p.requires_grad = False
+
+            pooled_dim = proj_dim * proj_dim
 
         self.input = nn.Sequential(
             nn.Linear(pooled_dim, hidden_dim),
@@ -66,7 +96,7 @@ class PoolingFFN(nn.Module):
         counts = m.sum(-1).clamp(min=1.0)            # [B, 1]
         return (x * m).sum(-1) / counts              # [B, d]
 
-    def _bilinear_cov(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def _bilinear_cov(self, x: torch.Tensor, mask: torch.Tensor, flattened: bool = True) -> torch.Tensor:
         # x: [B, d, L] -> C: [B, d_c, d_c] flattened to [B, d_c^2]
         x_t = x.transpose(-2, -1)                    # [B, L, d]
         x_L = self.proj_L(x_t)                       # XL : [B, L, d_c]
@@ -76,7 +106,9 @@ class PoolingFFN(nn.Module):
         x_R = x_R * m
         counts = m.sum(-2, keepdim=True).clamp(min=1.0)   # [B, 1, 1]
         C = x_L.transpose(-2, -1) @ x_R / counts     # [B, d_c, d_c]
-        return C.flatten(start_dim=1)                # [B, d_c^2]
+        if flattened:
+            return C.flatten(start_dim=1)                # [B, d_c^2]
+        return C
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, **kwargs) -> torch.Tensor:
         # x: [B, d, L] (per-residue, after padded_permuted_collate)
@@ -84,6 +116,8 @@ class PoolingFFN(nn.Module):
         if self.pooling == 'mean':
             pooled = self._masked_mean(x, mask)
         elif self.pooling == 'cov':
+            pooled = self._bilinear_cov(x, mask)
+        elif self.pooling == 'cov_unsup':
             pooled = self._bilinear_cov(x, mask)
         else:
             pooled = torch.cat(
