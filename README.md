@@ -1,114 +1,263 @@
-# Protein Subcellular Localization Prediction :dna:
-### [Video](https://www.youtube.com/watch?v=6gDy8-yOJqY) | [Paper](https://www.biorxiv.org/content/10.1101/2021.04.25.441334v1)
+# Second-Order Pooling for Protein Language Models
 
-Repository for the paper [Light Attention Predicts Protein Location from the Language of Life](https://www.biorxiv.org/content/10.1101/2021.04.25.441334v1). The method beats the previous SOTA by **8 percentage points** on the standard subcellular localization dataset and our new benchmark.
+**PP1 SoSe2026** — Technical University of Munich
 
-If you have questions or any trouble running some of the code, don't hesitate to open an issue or ask me via hannes.staerk@gmail.com. I am happy to hear from you!
-## Usage
+---
 
-Either train your own model or use the weights I provide in this repository and do only inference. We also provide
-a webserver https://embed.protein.properties/ where you can just upload sequences and get the localization predictions (and more).
+## Motivation
 
-### 1. Get Protein Embeddings
+Protein language models (pLMs) like ProtX produce rich per-residue embeddings, but most downstream tasks need a single fixed-size vector per protein. The standard approach is **mean pooling**: average all residue embeddings into one vector, then feed it to a probe head. It is simple and competitive, but has a structural blind spot — it averages each feature dimension independently, destroying information about feature **co-occurrence**.
 
-The architecture works on embeddings that are generated from single sequences of amino acids without additional
-evolutionary information as in profile embeddings.
-Just [download](https://drive.google.com/drive/folders/1Qsu8uvPuWr7e0sOdjBAsWQW7KvHcSo1y?usp=sharing)
-the embeddings and place them in `data_files`.
+**Covariance pooling** uses the second moment of residue activations rather than the first, capturing how features co-activate within a sequence and preserving combinatorial structure that mean pooling discards.
 
-Alternatively you can generate the embedding files from ``.fasta`` files using the
-[bio-embeddings](https://pypi.org/project/bio-embeddings/) library. For using the embeddings here, just replace the path
-in the corresponding config file, such as `configs/light_attention.yaml` to point to your embeddings and remapping file
-and set the parameter `key_format: hash`.
+---
 
-### 2. Setup environment
+## Research Question
 
-If you are using conda, you can install all dependencies like this. Otherwise, look at the setup below.
+> Does covariance-based pooling of per-residue ProtX embeddings improve per-protein downstream task performance compared to mean pooling, and at what embedding size does it become parameter-efficient?
+
+**Hypothesis:** Covariance pooling should preserve residue feature co-occurrence structure that mean pooling destroys, yielding improved downstream performance potentially at comparable or smaller embedding sizes than the original pLM hidden dimension.
+
+---
+
+## Method
+
+Given per-residue embeddings **X** ∈ ℝ^{L×d} from a frozen pLM:
+
+**Mean pooling (baseline):**  `μ = (1/L) Xᵀ 1_L  ∈ ℝ^d`
+
+**Covariance pooling:** learn projections L, R ∈ ℝ^{d×d_c}, then compute  
+`C = (1/L)(XL)ᵀ(XR)  ∈ ℝ^{d_c × d_c}` — flattened to d_c² features.
+
+Two training regimes for the projections:
+- **Supervised:** train L, R end-to-end with the probe head.
+- **Unsupervised:** train L, R to reconstruct XᵀX, then freeze and reuse across tasks.
+
+> Proper masking of padded positions is critical for both methods.
+
+---
+
+## Repository layout
 
 ```
+.
+├── train_subcellular_localization.py   # DeepLoc training entry point
+├── train_meltome.py                    # Meltome regression training entry point
+├── inference.py / inference_meltome.py
+├── solver.py                           # Localisation training/eval loop
+├── solver_meltome.py                   # Meltome training/eval loop (Spearman R)
+│
+├── models/
+│   ├── light_attention.py              # LightAttention (conv attention-weighted + max pool)
+│   ├── light_attention_cov.py          # LightAttention + bilinear covariance branch
+│   ├── pooling_ffn.py                  # PoolingFFN: mean / cov / hybrid pooling + FFN head
+│   ├── ffn.py                          # FFN probe on reduced (sequence-wise) embeddings
+│   └── loss_functions.py
+│
+├── configs/
+│   ├── subcellular_localization/       # DeepLoc (localisation) sweep configs
+│   │   ├── mean.yaml                   #   seed 969
+│   │   ├── cov.yaml                    #   seed 123
+│   │   ├── hybrid.yaml                 #   seed 123
+│   │   ├── la.yaml                     #   seed 123  (plain LightAttention)
+│   │   └── la_cov.yaml                 #   seed 123  (LightAttention + covariance)
+│   └── meltome/                        # Meltome regression sweep configs
+│       ├── mean.yaml / cov.yaml / hybrid.yaml
+│       ├── la.yaml                     #   seed 123  (plain LightAttention)
+│       └── la_cov.yaml                 #   seed 123  (LightAttention + covariance)
+│
+└── scripts/
+    ├── embed_bio_embeddings_h5.py      # Generate ProtX H5 embeddings — final layer
+    ├── embed_layers_h5.py              # Generate H5 files for N transformer layers
+    ├── prepare_flip_meltome_fastas.py  # FLIP CSV → train/val/test FASTAs
+    ├── run_sweep.py                    # Pooling-method + d_c sweep (Exp 1 & 2)
+    ├── run_layer_sweep.py              # Layer sweep — head-to-head at each layer (Exp 4)
+    ├── collect_results.py              # Parse run dirs → results.csv
+    ├── plot_sweep.py                   # Visualise pooling sweep results
+    └── plot_layer_sweep.py             # Visualise layer × method grid
+```
+
+---
+
+## Pooling methods
+
+| Method | Extra params | Output dim | Notes |
+|---|---|---|---|
+| Mean pooling | 0 | d | baseline |
+| Covariance (supervised) | 2·d·d_c | d_c² | L, R trained end-to-end |
+| Hybrid [μ; flat(C)] | 2·d·d_c | d + d_c² | concatenation |
+| LightAttention | — | 2d | conv attention-weighted + max pool |
+| LightAttentionCov | 2·d·d_c | 2d + d_c² | LA + covariance branch |
+
+---
+
+## Tasks
+
+| Task | Type | Dataset | Metric | Train script |
+|---|---|---|---|---|
+| Subcellular localisation | 10-class classification | DeepLoc | Q10 accuracy | `train_subcellular_localization.py` |
+| Meltome (thermostability) | Regression | FLIP Meltome | Spearman R | `train_meltome.py` |
+
+---
+
+## Setup
+
+```bash
 conda env create -f environment.yml
 conda activate bio
 ```
 
-### 3.1 Training
+---
 
-Make sure that you have
-the [embeddings](https://drive.google.com/drive/folders/1Qsu8uvPuWr7e0sOdjBAsWQW7KvHcSo1y?usp=sharing)
-placed in the files specified in `configs/light_attention.yaml` as described in step 1. Then start training:
+## Data preparation
 
-```
-python train.py --config configs/light_attention.yaml
-tensorboard --logdir=runs --port=6006
-```
-
-You can now go to `localhost:6006` in your browser and watch the model train.
-
-### 3.2 Inference
-
-Either use your own tranined weights that were saved in the `runs` directory, or download
-the [trained_model_weights](https://drive.google.com/drive/folders/13Ci6OmUaqUBpjWnG5nHLhg8HdJfbPi0p?usp=sharing)
-and place the folder in the repository root. Running the following command will use the weights to generate the
-predictions for the protein embeddings specified in `configs/inference.yaml` (setHARD currently).
+### DeepLoc (localisation)
 
 ```
-python inference.py --config configs/inference.yaml
+data_files/deeploc_our_train_set.{h5,fasta}
+data_files/deeploc_our_val_set.{h5,fasta}
+data_files/deeploc_test_set.{h5,fasta}
 ```
 
-The predictions are then saved in the checkpoint in `trained_model_weights` as `predictions.txt` in the same order as
-your input.
-
-## Architecture
-
-![architecture](https://github.com/HannesStark/protein-localization/blob/master/.architecture.png)
-
-## Setup
-
-Python 3 dependencies:
-
-- pytorch
-- biopython
-- h5py
-- matplotlib
-- seaborn
-- pandas
-- pyaml
-- torchvision
-- sklearn
-
-You can use the conda environment file to install all of the above dependencies. Create the conda environment `bio` by
-running:
-
-```
-conda env create -f environment.yml
+If FASTA files are missing, regenerate from H5 keys:
+```bash
+python scripts/regen_fasta_from_h5.py
 ```
 
-### Reproduce exact results
+### FLIP Meltome (regression)
 
-You can use the respective configuration file to reproduce the results of the methods in the paper. The 10 randomly
-generated seeds with which we trained 10 models of each method to get standard errors are:
+```bash
+# 1. Convert FLIP CSV → train/val/test FASTAs
+python scripts/prepare_flip_meltome_fastas.py \
+    --csv  data_files/flip_meltome/splits/human_cell.csv \
+    --output-dir data_files/flip_meltome/prepared/human_cell \
+    --prefix human_cell
+
+# 2. Generate final-layer ProtX embeddings (one-time, GPU-intensive)
+python scripts/embed_bio_embeddings_h5.py \
+    data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
+    data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
+    data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta
+```
+
+---
+
+## Two separate experiment pipelines
 
 ```
-[921, 969, 309, 559, 303, 451, 279, 624, 657, 702]
+PIPELINE A — Pooling method + d_c sweep (Experiments 1 & 2)
+
+  embed_bio_embeddings_h5.py          final-layer H5 files (one-time)
+          │
+          ▼
+  run_sweep.py --task meltome|loc     trains all (method, d_c) pairs
+          │
+          ▼
+  collect_results.py                  parses run dirs → results.csv
+          │
+          ▼
+  plot_sweep.py                       sweep_dc_curve.png + sweep_bars.png
+
+
+PIPELINE B — Layer sweep (Experiment 4)
+
+  embed_layers_h5.py --layers 6 12 18 24    per-layer H5 files (one-time)
+          │
+          ▼
+  run_layer_sweep.py --task meltome|loc     trains all (layer, method) pairs
+          │
+          ▼
+  plot_layer_sweep.py                       layer_curve.png
 ```
 
-### Performance
+**Key difference:** Pipeline A always uses the same (final-layer) H5 files. Pipeline B requires separate per-layer H5 files generated by `embed_layers_h5.py`.
 
-The DeepLoc [data set](http://www.cbs.dtu.dk/services/DeepLoc/data.php) has 10 different subcellular localizations that
-need to be classified. Meanwhile, `setHard` is a new Dataset with less redundancy and harder targets. The dataset
-details can be found in our paper.
+---
 
-![accuracyplot](https://github.com/HannesStark/protein-localization/blob/master/.accuracy.png)
+## Experiments
 
-Accuracy on the DeepLoc test set:
+### Experiment 1 — Head-to-head benchmark
 
-| Method | Accuracy |
-| --- | --- |
-| Ours | **86.01%** |
-| DeepLoc | 77.97% |
-| iLoc-Euk | 68.20% |
-| YLoc | 61.22% |
-| LocTree2 | 61.20% |
-| SherLoc2 | 58.15% |
+4 methods × 2 tasks × 3 seeds = 24 main results.
 
-(Ours evaluated accross 10 different randomly chosen seeds)
-(Numbers taken from the DeepLoc [paper](https://academic.oup.com/bioinformatics/article/33/21/3387/3931857))
+```bash
+# Seed 1 (meltome)
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 123
+# Seed 2
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 969
+# Seed 3
+python scripts/run_sweep.py --task meltome --methods mean cov hybrid la la_cov --seed 309
+
+# Repeat for --task loc
+```
+
+### Experiment 2 — Size-matched efficiency sweep
+
+Vary d_c ∈ {8, 16, 24, 32, 48}; plot metric vs. embedding size d_c².
+
+```bash
+python scripts/run_sweep.py --task meltome --methods cov hybrid la_cov --dcs 8 16 24 32 48
+python scripts/run_sweep.py --task loc     --methods cov hybrid la_cov --dcs 8 16 24 32 48
+```
+
+Collect and visualise:
+```bash
+python scripts/collect_results.py --sweep sweeps/<tag>
+python scripts/plot_sweep.py      --sweep sweeps/<tag>
+```
+
+Outputs `sweep_dc_curve.png` (metric vs d_c per method) and `sweep_bars.png`.
+
+### Experiment 3 — Supervised vs. unsupervised bottleneck
+
+Train L, R to reconstruct XᵀX (unsupervised), freeze them, then reuse across tasks. Compare against per-task supervised bottlenecks.
+
+> Not yet implemented — Experiments 1, 2, and 4 are fully operational.
+
+### Experiment 4 — Layer sweep
+
+Repeat the head-to-head comparison at a handful of ProtX layers (early / middle / late / last) to test whether covariance pooling's advantage holds across model depth.
+
+**Step 1 — generate per-layer embeddings (one-time):**
+```bash
+python scripts/embed_layers_h5.py \
+    --fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
+            data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
+            data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
+    --layers 6 12 18 24
+```
+
+**Step 2 — run the layer × method sweep:**
+```bash
+python scripts/run_layer_sweep.py \
+    --train-fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
+    --val-fasta   data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
+    --test-fasta  data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
+    --task meltome --methods mean cov hybrid la la_cov --layers 6 12 18 24
+```
+
+**Step 3 — plot:**
+```bash
+python scripts/plot_layer_sweep.py --csv sweeps/layer_<tag>/layer_results.csv
+```
+
+Produces `layer_curve.png`: metric vs. layer depth, one line per pooling method.
+
+---
+
+## Evaluation metrics
+
+| Task | Primary | Secondary |
+|---|---|---|
+| Localisation | Q10 accuracy | MCC, per-class F1 |
+| Meltome | Spearman R | MSE, MAE |
+
+All metrics include bootstrap standard errors (200 resamples, `--n-draws`).
+
+---
+
+## Stretch goals
+
+- Unsupervised covariance bottleneck (Experiment 3)
+- Pool PaRTI (PageRank-based pooling)
+- Binary membrane/soluble classification as a third task

@@ -17,6 +17,7 @@ Usage:
     python scripts/run_sweep.py --seed 123 --tag overnight
     python scripts/run_sweep.py --methods mean cov           # subset
     python scripts/run_sweep.py --dcs 8 16 32                # subset of d_c
+    python scripts/run_sweep.py --task meltome               # Meltome regression sweep
 """
 import argparse
 import datetime
@@ -31,19 +32,35 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BASE_CONFIGS = {
-    'mean':   PROJECT_ROOT / 'configs' / 'mean.yaml',
-    'cov':    PROJECT_ROOT / 'configs' / 'cov.yaml',
-    'hybrid': PROJECT_ROOT / 'configs' / 'hybrid.yaml',
-    'la_cov': PROJECT_ROOT / 'configs' / 'la_cov.yaml',
+    'loc': {
+        'mean':   PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'mean.yaml',
+        'cov':    PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'cov.yaml',
+        'hybrid': PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'hybrid.yaml',
+        'la':     PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'la.yaml',
+        'la_cov': PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'la_cov.yaml',
+    },
+    'meltome': {
+        'mean':   PROJECT_ROOT / 'configs' / 'meltome' / 'mean.yaml',
+        'cov':    PROJECT_ROOT / 'configs' / 'meltome' / 'cov.yaml',
+        'hybrid': PROJECT_ROOT / 'configs' / 'meltome' / 'hybrid.yaml',
+        'la':     PROJECT_ROOT / 'configs' / 'meltome' / 'la.yaml',
+        'la_cov': PROJECT_ROOT / 'configs' / 'meltome' / 'la_cov.yaml',
+    },
 }
+TRAIN_SCRIPTS = {
+    'loc':     'train_subcellular_localization.py',
+    'meltome': 'train_meltome.py',
+}
+# Methods that do not sweep over d_c (no projection dimension)
+NO_DC_METHODS = {'mean', 'la'}
 DC_VALUES = [8, 16, 24, 32, 48]
 
 
 def build_run_plan(methods, dcs):
     plan = []
     for method in methods:
-        if method == 'mean':
-            plan.append(('mean', None))
+        if method in NO_DC_METHODS:
+            plan.append((method, None))
         else:
             for dc in dcs:
                 plan.append((method, dc))
@@ -62,8 +79,8 @@ def make_config(base_path: Path, dst_path: Path, method: str, dc: int | None,
         yaml.safe_dump(cfg, f, sort_keys=False)
 
 
-def run_one(config_path: Path, log_path: Path) -> int:
-    cmd = [sys.executable, '-u', 'train.py', '--config', str(config_path)]
+def run_one(config_path: Path, log_path: Path, train_script: str = 'train.py') -> int:
+    cmd = [sys.executable, '-u', train_script, '--config', str(config_path)]
     print(f'  → {" ".join(cmd)}')
     print(f'    log: {log_path}')
     env = os.environ.copy()
@@ -83,9 +100,11 @@ def main() -> None:
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--tag', default=None,
                         help='Sweep folder name (default: timestamped)')
-    parser.add_argument('--methods', nargs='+', default=['mean', 'cov', 'hybrid'],
-                        choices=['mean', 'cov', 'hybrid', 'la_cov'])
+    parser.add_argument('--methods', nargs='+', default=['mean', 'cov', 'hybrid', 'la', 'la_cov'],
+                        choices=['mean', 'cov', 'hybrid', 'la', 'la_cov'])
     parser.add_argument('--dcs', nargs='+', type=int, default=DC_VALUES)
+    parser.add_argument('--task', default='loc', choices=['loc', 'meltome'],
+                        help='Task to sweep: loc (localization) or meltome (regression)')
     args = parser.parse_args()
 
     tag = args.tag or datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -93,6 +112,10 @@ def main() -> None:
     (sweep_dir / 'configs').mkdir(parents=True, exist_ok=True)
     (sweep_dir / 'logs').mkdir(parents=True, exist_ok=True)
     print(f'Sweep dir: {sweep_dir}')
+
+    task_configs = BASE_CONFIGS[args.task]
+    train_script = TRAIN_SCRIPTS[args.task]
+    print(f'Task: {args.task}  (train script: {train_script})')
 
     plan = build_run_plan(args.methods, args.dcs)
     print(f'Plan: {len(plan)} runs')
@@ -103,15 +126,15 @@ def main() -> None:
     summary_lines = []
     for i, (method, dc) in enumerate(plan, 1):
         tag_str = method if dc is None else f'{method}_dc{dc}'
-        exp_name = f'{tag_str}_seed{args.seed}'
+        exp_name = f'{args.task}_{tag_str}_seed{args.seed}'
         config_path = sweep_dir / 'configs' / f'{tag_str}.yaml'
         log_path = sweep_dir / 'logs' / f'{tag_str}.log'
 
-        make_config(BASE_CONFIGS[method], config_path, method, dc, args.seed, exp_name)
+        make_config(task_configs[method], config_path, method, dc, args.seed, exp_name)
 
         print(f'\n[{i}/{len(plan)}] {tag_str}')
         t0 = datetime.datetime.now()
-        rc = run_one(config_path, log_path)
+        rc = run_one(config_path, log_path, train_script)
         elapsed = (datetime.datetime.now() - t0).total_seconds() / 60.0
         status = 'ok' if rc == 0 else f'FAILED rc={rc}'
         line = f'{tag_str:20s}  seed={args.seed}  rc={rc:3d}  time={elapsed:6.1f}min'

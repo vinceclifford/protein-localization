@@ -1,27 +1,31 @@
-experiment_name: 'localization_prediction_T5_Embedding'
+experiment_name: 'la_ProtT5'
 
 seed: 123
+eval_on_test: True
 num_epochs: 5000
 batch_size: 150
 log_iterations: 100
 patience: 80
-min_train_acc: 99.6
+# min_train_acc removed: 99.6 forced training to run all 5000 epochs.
+# Early stopping now triggers on val plateau alone, matching the cov/hybrid runs.
 optimizer_parameters:
   lr: 5.0e-5
 
-# Paths to Data
+# Paths to Embeddings (per-residue ProtT5)
 train_embeddings: 'data_files/deeploc_our_train_set.h5'
 val_embeddings:   'data_files/deeploc_our_val_set.h5'
 test_embeddings:  'data_files/deeploc_test_set.h5'
 
+# Paths to Fasta files
 train_remapping: 'data_files/deeploc_our_train_set.fasta'
 val_remapping:   'data_files/deeploc_our_val_set.fasta'
 test_remapping:  'data_files/deeploc_test_set.fasta'
+
 key_format: 'fasta_descriptor'
 
-# Model parameters
 model_type: 'LightAttention'
 model_parameters:
-  dropout: 0.25
-  kernel_size: 9
   output_dim: 10
+  dropout: 0.25
+  conv_dropout: 0.25
+  kernel_size: 9

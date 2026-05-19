@@ -7,7 +7,7 @@ from torchvision.transforms import transforms
 from datasets.embeddings_localization_dataset import EmbeddingsLocalizationDataset
 from datasets.transforms import *
 
-from solver import Solver
+from solver_subcellular_localization import Solver
 from utils.general import padded_permuted_collate, seed_all
 
 
@@ -29,11 +29,9 @@ def train(args):
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, collate_fn=collate_function)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, collate_fn=collate_function)
 
-    # Needs "from models import *" to work
     model = globals()[args.model_type](embeddings_dim=train_set[0][0].shape[-1], **args.model_parameters)
     print('trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
-    # Needs "from torch.optim import *" and "from models import *" to work
     solver = Solver(model, args, globals()[args.optimizer], globals()[args.loss_function],
                     weight=train_set.class_weights)
     solver.train(train_loader, val_loader, eval_data=val_set)

@@ -6,7 +6,8 @@ num_epochs: 5000
 batch_size: 150
 log_iterations: 100
 patience: 80
-min_train_acc: 99.6
+# min_train_acc removed: 99.6 forced training to run all 5000 epochs.
+# Early stopping now triggers on val plateau alone, matching the cov/hybrid runs.
 optimizer_parameters:
   lr: 5.0e-5
 
