@@ -113,32 +113,24 @@ conda activate bio
 
 ### DeepLoc (localisation)
 
-```
-data_files/deeploc_our_train_set.{h5,fasta}
-data_files/deeploc_our_val_set.{h5,fasta}
-data_files/deeploc_test_set.{h5,fasta}
+Downloads the three FASTA splits from the LightAttention repository and
+generates ProtT5 embeddings in one step:
+
+```bash
+python scripts/prepare_deeploc.py --device mps
 ```
 
-If FASTA files are missing, regenerate from H5 keys:
-```bash
-python scripts/regen_fasta_from_h5.py
-```
+Produces `data_files/deeploc_our_{train,val}_set.{fasta,h5}` and `data_files/deeploc_test_set.{fasta,h5}`.
 
 ### FLIP Meltome (regression)
 
-```bash
-# 1. Convert FLIP CSV → train/val/test FASTAs
-python scripts/prepare_flip_meltome_fastas.py \
-    --csv  data_files/flip_meltome/splits/human_cell.csv \
-    --output-dir data_files/flip_meltome/prepared/human_cell \
-    --prefix human_cell
+Downloads the FLIP human_cell CSV, splits into FASTAs, and generates embeddings:
 
-# 2. Generate final-layer ProtX embeddings (one-time, GPU-intensive)
-python scripts/embed_bio_embeddings_h5.py \
-    data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
-    data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
-    data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta
+```bash
+python scripts/prepare_meltome.py --device mps
 ```
+
+Produces `data_files/flip_meltome/prepared/human_cell/human_cell_{train,val,test}.{fasta,h5}`.
 
 ---
 

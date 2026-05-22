@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-"""Generate ProtT5 HDF5 embeddings with bio_embeddings.
+"""Generate final-layer ProtT5-XL HDF5 embeddings using HuggingFace transformers.
 
-The LightAttention dataset loader expects the HDF5 key to match the FASTA
-record id when `key_format: hash` is used. This script writes remapped FASTA
-files with stable numeric ids and stores each embedding under that id.
+Extracts the last encoder hidden state (layer 24) of ProtT5-XL and stores
+per-residue embeddings as float16 in H5 files compatible with the dataset loaders
+(key_format='hash').
+
+Output per input FASTA (e.g. my_seqs.fasta):
+    my_seqs_remapped.fasta   — remapped FASTA with numeric IDs
+    my_seqs.h5               — per-residue embeddings, keys = numeric IDs
+
+Usage:
+    python scripts/embed_bio_embeddings_h5.py data_files/deeploc_our_train_set.fasta
+    python scripts/embed_bio_embeddings_h5.py a.fasta b.fasta c.fasta --device mps
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import warnings
 from pathlib import Path
 from typing import Iterator, Sequence
@@ -25,209 +34,202 @@ warnings.filterwarnings(
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
-
-from bio_embeddings.embed import name_to_embedder
+from transformers import T5EncoderModel, T5Tokenizer
 
 
 DEFAULT_MODEL_CACHE = Path("embedder_model")
-DEFAULT_REPO_ID_CACHE = "models--Rostlab--prot_t5_xl_uniref50"
+HF_MODEL_ID = "Rostlab/prot_t5_xl_uniref50"
+FINAL_LAYER = 24
+
+_NONSTANDARD = re.compile(r"[UOBZJ]")
 
 
-def resolve_model_directory(model_directory: str | Path) -> Path:
-    """Return a Hugging Face snapshot directory containing config/spiece files."""
+def _clean_sequence(seq: str) -> str:
+    return _NONSTANDARD.sub("X", seq.upper())
+
+
+def resolve_model_directory(model_directory: str | Path) -> str:
+    """Return a local snapshot path or the HuggingFace model ID for `from_pretrained`."""
     path = Path(model_directory)
     if (path / "config.json").exists() and (path / "spiece.model").exists():
-        return path
+        return str(path)
 
-    cache_root = path / DEFAULT_REPO_ID_CACHE if (path / DEFAULT_REPO_ID_CACHE).exists() else path
+    repo_cache = path / "models--Rostlab--prot_t5_xl_uniref50"
+    cache_root = repo_cache if repo_cache.exists() else path
     refs_main = cache_root / "refs" / "main"
     if refs_main.exists():
         snapshot = cache_root / "snapshots" / refs_main.read_text().strip()
-        if (snapshot / "config.json").exists() and (snapshot / "spiece.model").exists():
-            return snapshot
+        if (snapshot / "config.json").exists():
+            return str(snapshot)
 
     snapshots = cache_root / "snapshots"
     if snapshots.exists():
         for snapshot in sorted(snapshots.iterdir()):
-            if (snapshot / "config.json").exists() and (snapshot / "spiece.model").exists():
-                return snapshot
+            if (snapshot / "config.json").exists():
+                return str(snapshot)
 
-    raise FileNotFoundError(
-        f"Could not find a ProtT5 Hugging Face snapshot under {model_directory}"
-    )
-
-
-def default_fastas() -> list[Path]:
-    return sorted(
-        path
-        for path in Path("data_files").glob("*.fasta")
-        if not path.name.endswith("_remapped.fasta")
-    )
-
-
-def remapped_path_for(fasta: Path) -> Path:
-    return fasta.with_name(f"{fasta.stem}_remapped.fasta")
-
-
-def h5_path_for(fasta: Path) -> Path:
-    return fasta.with_suffix(".h5")
+    # No local snapshot — fall back to HuggingFace hub (will download on first use).
+    print(f"  No local model at {path}; downloading {HF_MODEL_ID} from HuggingFace hub.")
+    return HF_MODEL_ID
 
 
 def sorted_records(fasta: Path) -> list[SeqRecord]:
     records = list(SeqIO.parse(str(fasta), "fasta"))
-    return sorted(records, key=lambda record: -len(record.seq))
+    return sorted(records, key=lambda r: -len(r.seq))
 
 
-def write_remapped_fasta(records: Sequence[SeqRecord], output: Path) -> dict[str, SeqRecord]:
+def write_remapped_fasta(records: Sequence[SeqRecord], output: Path) -> list[tuple[str, str]]:
     output.parent.mkdir(parents=True, exist_ok=True)
-    remapped_records: list[SeqRecord] = []
-    id_to_record: dict[str, SeqRecord] = {}
+    items: list[tuple[str, str]] = []
+    remapped: list[SeqRecord] = []
     for index, record in enumerate(records):
-        remapped_id = str(index)
-        remapped = SeqRecord(
-            record.seq,
-            id=remapped_id,
-            name=remapped_id,
-            description=f"{remapped_id} {record.description}",
-        )
-        remapped_records.append(remapped)
-        id_to_record[remapped_id] = record
-    SeqIO.write(remapped_records, str(output), "fasta")
-    return id_to_record
+        rid = str(index)
+        cleaned = _clean_sequence(str(record.seq))
+        remapped.append(SeqRecord(
+            record.seq, id=rid, name=rid,
+            description=f"{rid} {record.description}",
+        ))
+        items.append((rid, cleaned))
+    SeqIO.write(remapped, str(output), "fasta")
+    return items
 
 
 def iter_batches(
-    items: Sequence[tuple[str, str, int]],
+    items: list[tuple[str, str]],
     max_amino_acids: int,
     max_sequences: int,
-) -> Iterator[list[tuple[str, str, int]]]:
-    batch: list[tuple[str, str, int]] = []
+) -> Iterator[list[tuple[str, str]]]:
+    batch: list[tuple[str, str]] = []
     total = 0
-    for item in items:
-        length = item[2]
+    for rid, seq in items:
+        length = len(seq)
         if batch and (total + length > max_amino_acids or len(batch) >= max_sequences):
             yield batch
             batch = []
             total = 0
-        batch.append(item)
+        batch.append((rid, seq))
         total += length
     if batch:
         yield batch
 
 
-def embed_batch(embedder, batch: Sequence[tuple[str, str, int]]) -> list[np.ndarray]:
-    sequences = [sequence for _, sequence, _ in batch]
-    try:
-        if hasattr(embedder, "_embed_batch_impl") and hasattr(embedder, "_model"):
-            return list(embedder._embed_batch_impl(sequences, embedder._model))
-        return list(embedder.embed_batch(sequences))
-    except RuntimeError:
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        if len(batch) == 1:
-            raise
-        mid = max(1, len(batch) // 2)
-        return embed_batch(embedder, batch[:mid]) + embed_batch(embedder, batch[mid:])
+@torch.no_grad()
+def embed_batch(
+    tokenizer: T5Tokenizer,
+    model: T5EncoderModel,
+    batch: list[tuple[str, str]],
+    device: torch.device,
+    store_half: bool,
+) -> list[tuple[str, np.ndarray]]:
+    ids = [rid for rid, _ in batch]
+    seqs = [seq for _, seq in batch]
+    lengths = [len(s) for s in seqs]
+
+    spaced = [" ".join(list(s)) for s in seqs]
+    enc = tokenizer(spaced, return_tensors="pt", padding=True, add_special_tokens=True)
+    out = model(
+        input_ids=enc["input_ids"].to(device),
+        attention_mask=enc["attention_mask"].to(device),
+    )
+    hidden = out.last_hidden_state  # [B, token_len, d] — final encoder layer
+    dtype = np.float16 if store_half else np.float32
+    return [
+        (rid, hidden[i, :length, :].cpu().float().numpy().astype(dtype))
+        for i, (rid, length) in enumerate(zip(ids, lengths))
+    ]
 
 
-def generate_for_fasta(args: argparse.Namespace, fasta: Path, embedder) -> None:
+def generate_for_fasta(
+    args: argparse.Namespace,
+    fasta: Path,
+    tokenizer: T5Tokenizer,
+    model: T5EncoderModel,
+    device: torch.device,
+) -> None:
     records = sorted_records(fasta)
-    remapped_output = args.remapped_output or remapped_path_for(fasta)
-    output = args.output or h5_path_for(fasta)
-    id_to_record = write_remapped_fasta(records, remapped_output)
+    remapped_out = args.remapped_output or fasta.with_name(f"{fasta.stem}_remapped.fasta")
+    h5_out = args.output or fasta.with_suffix(".h5")
+
+    items = write_remapped_fasta(records, remapped_out)
 
     max_length = None if args.max_length <= 0 else args.max_length
-    candidates: list[tuple[str, str, int]] = []
-    skipped_length = 0
-    for remapped_id, record in id_to_record.items():
-        sequence = str(record.seq)
-        if max_length is not None and len(sequence) > max_length:
-            skipped_length += 1
-            continue
-        candidates.append((remapped_id, sequence, len(sequence)))
+    candidates = [(rid, seq) for rid, seq in items
+                  if max_length is None or len(seq) <= max_length]
+    skipped = len(items) - len(candidates)
+    print(
+        f"{fasta.name}: {len(records)} records, {len(candidates)} within max_length, "
+        f"{skipped} skipped"
+    )
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with h5py.File(output, "a") as h5_file:
-        todo = [item for item in candidates if item[0] not in h5_file]
-        print(
-            f"{fasta}: {len(records)} records, {len(candidates)} within max length, "
-            f"{len(todo)} to embed, {skipped_length} skipped"
-        )
+    with h5py.File(h5_out, "a") as h5:
+        todo = [(rid, seq) for rid, seq in candidates if rid not in h5]
+        print(f"  {len(todo)} sequences to embed")
         if not todo:
+            print("  All sequences already embedded — skipping.")
             return
 
         progress = tqdm(total=len(todo), desc=fasta.stem, unit="seq")
         for batch in iter_batches(todo, args.max_amino_acids, args.max_sequences):
-            embeddings = embed_batch(embedder, batch)
-            if len(embeddings) != len(batch):
-                raise RuntimeError(
-                    f"bio_embeddings returned {len(embeddings)} embeddings for a batch of {len(batch)}"
-                )
-            for (remapped_id, _, length), embedding in zip(batch, embeddings):
-                if embedding.shape[0] != length:
-                    raise RuntimeError(
-                        f"Length mismatch for {remapped_id}: {embedding.shape[0]} vs {length}"
-                    )
-                data = embedding.astype(np.float16 if args.store_half else np.float32, copy=False)
-                h5_file.create_dataset(remapped_id, data=data, compression=args.compression)
-                progress.update(1)
-            h5_file.flush()
+            for rid, emb in embed_batch(tokenizer, model, batch, device, args.store_half):
+                h5.create_dataset(rid, data=emb, compression=args.compression)
+            h5.flush()
+            progress.update(len(batch))
         progress.close()
+
+    print(f"  → {h5_out}")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate LightAttention-compatible .h5 files using bio_embeddings ProtT5."
+        description="Generate final-layer ProtT5-XL embeddings as H5 files."
     )
-    parser.add_argument("fasta", nargs="*", type=Path, help="FASTA files. Defaults to data_files/*.fasta.")
-    parser.add_argument("--output", type=Path, help="Output .h5 path. Only valid with one FASTA.")
-    parser.add_argument("--remapped-output", type=Path, help="Output remapped FASTA path. Only valid with one FASTA.")
+    parser.add_argument("fasta", nargs="*", type=Path,
+                        help="FASTA files to embed.")
+    parser.add_argument("--output", type=Path,
+                        help="Output H5 path (single-FASTA mode only).")
+    parser.add_argument("--remapped-output", type=Path,
+                        help="Remapped FASTA output path (single-FASTA mode only).")
     parser.add_argument("--model-directory", type=Path, default=DEFAULT_MODEL_CACHE)
-    parser.add_argument("--protocol", default="prottrans_t5_xl_u50")
-    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--device", default="mps",
+                        help="Torch device: mps, cuda, or cpu.")
     parser.add_argument("--max-length", type=int, default=6000)
     parser.add_argument("--max-amino-acids", type=int, default=12000)
     parser.add_argument("--max-sequences", type=int, default=64)
     parser.add_argument("--store-float32", dest="store_half", action="store_false")
-    parser.add_argument("--full-precision-model", dest="half_precision_model", action="store_false")
     parser.add_argument("--compression", default=None)
-    parser.set_defaults(store_half=True, half_precision_model=True)
+    parser.set_defaults(store_half=True)
     args = parser.parse_args()
 
     if (args.output or args.remapped_output) and len(args.fasta) != 1:
         parser.error("--output and --remapped-output require exactly one FASTA")
-    if args.protocol not in name_to_embedder:
-        parser.error(f"Unknown bio_embeddings protocol: {args.protocol}")
-    if args.max_amino_acids <= 0:
-        parser.error("--max-amino-acids must be positive")
-    if args.max_sequences <= 0:
-        parser.error("--max-sequences must be positive")
-    if not args.fasta:
-        args.fasta = default_fastas()
     return args
 
 
 def main() -> None:
     args = parse_args()
-    model_directory = resolve_model_directory(args.model_directory)
-    print(f"Using model directory: {model_directory}")
-    print(
-        f"Batch limits: max_amino_acids={args.max_amino_acids}, "
-        f"max_sequences={args.max_sequences}, max_length={args.max_length}"
-    )
+    model_dir = resolve_model_directory(args.model_directory)
+    print(f"Model directory: {model_dir}")
 
-    embedder_class = name_to_embedder[args.protocol]
-    embedder = embedder_class(
-        model_directory=str(model_directory),
-        device=args.device,
-        half_precision_model=args.half_precision_model,
-    )
+    device_str = args.device
+    if device_str == "cuda" and not torch.cuda.is_available():
+        print("CUDA not available, falling back to CPU.")
+        device_str = "cpu"
+    if device_str == "mps" and not torch.backends.mps.is_available():
+        print("MPS not available, falling back to CPU.")
+        device_str = "cpu"
+    device = torch.device(device_str)
+    print(f"Device: {device}")
+
+    print("Loading tokenizer and model...")
+    tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
+    model = T5EncoderModel.from_pretrained(model_dir).to(device).eval()
 
     for fasta in args.fasta:
-        generate_for_fasta(args, fasta, embedder)
+        print(f"\n=== {fasta} ===")
+        generate_for_fasta(args, fasta, tokenizer, model, device)
 
-    if torch.cuda.is_available():
-        print(f"Peak CUDA allocation: {torch.cuda.max_memory_allocated() // 1024**2} MiB")
+    if device.type == "cuda":
+        print(f"\nPeak CUDA memory: {torch.cuda.max_memory_allocated() // 1024**2} MiB")
 
 
 if __name__ == "__main__":

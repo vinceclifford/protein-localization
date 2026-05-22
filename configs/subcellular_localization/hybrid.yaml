@@ -9,17 +9,17 @@ patience: 80
 optimizer_parameters:
   lr: 1.0e-4
 
-# Paths to Embeddings (per-residue ProtT5)
-train_embeddings: 'data_files/deeploc_our_train_set.h5'
-val_embeddings:   'data_files/deeploc_our_val_set.h5'
-test_embeddings:  'data_files/deeploc_test_set.h5'
+# Paths to Embeddings (per-residue ProtT5, last layer)
+train_embeddings: 'data_files/deeploc_our_train_set_layer24.h5'
+val_embeddings:   'data_files/deeploc_our_val_set_layer24.h5'
+test_embeddings:  'data_files/deeploc_test_set_layer24.h5'
 
-# Paths to Fasta files
-train_remapping: 'data_files/deeploc_our_train_set.fasta'
-val_remapping:   'data_files/deeploc_our_val_set.fasta'
-test_remapping:  'data_files/deeploc_test_set.fasta'
+# Remapped FASTAs (numeric ids matching the h5 keys)
+train_remapping: 'data_files/deeploc_our_train_set_remapped.fasta'
+val_remapping:   'data_files/deeploc_our_val_set_remapped.fasta'
+test_remapping:  'data_files/deeploc_test_set_remapped.fasta'
 
-key_format: 'fasta_descriptor'
+key_format: 'hash'
 
 # Model parameters
 # Hybrid = [mu ; flat(C)] with C = (1/L)(XL)^T(XR). Pooled size = d + d_c^2.

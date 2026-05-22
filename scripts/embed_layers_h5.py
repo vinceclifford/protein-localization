@@ -45,6 +45,7 @@ from transformers import T5EncoderModel, T5Tokenizer
 
 
 DEFAULT_MODEL_CACHE = Path("embedder_model")
+HF_MODEL_ID = "Rostlab/prot_t5_xl_uniref50"
 DEFAULT_LAYERS = [6, 12, 18, 24]
 
 _NONSTANDARD = re.compile(r"[UOBZJ]")
@@ -55,11 +56,11 @@ def _clean_sequence(seq: str) -> str:
     return _NONSTANDARD.sub("X", seq.upper())
 
 
-def resolve_model_directory(model_directory: str | Path) -> Path:
-    """Return a Hugging Face snapshot directory containing config/spiece files."""
+def resolve_model_directory(model_directory: str | Path) -> str:
+    """Return a local snapshot path or the HuggingFace model ID for `from_pretrained`."""
     path = Path(model_directory)
     if (path / "config.json").exists() and (path / "spiece.model").exists():
-        return path
+        return str(path)
 
     repo_cache = path / "models--Rostlab--prot_t5_xl_uniref50"
     cache_root = repo_cache if repo_cache.exists() else path
@@ -67,17 +68,16 @@ def resolve_model_directory(model_directory: str | Path) -> Path:
     if refs_main.exists():
         snapshot = cache_root / "snapshots" / refs_main.read_text().strip()
         if (snapshot / "config.json").exists():
-            return snapshot
+            return str(snapshot)
 
     snapshots = cache_root / "snapshots"
     if snapshots.exists():
         for snapshot in sorted(snapshots.iterdir()):
             if (snapshot / "config.json").exists():
-                return snapshot
+                return str(snapshot)
 
-    raise FileNotFoundError(
-        f"Could not find a ProtT5 snapshot under {model_directory}"
-    )
+    print(f"  No local model at {path}; downloading {HF_MODEL_ID} from HuggingFace hub.")
+    return HF_MODEL_ID
 
 
 def sorted_records(fasta: Path) -> list[SeqRecord]:
@@ -265,8 +265,8 @@ def main() -> None:
     print(f"Device: {device}")
 
     print("Loading tokenizer and model...")
-    tokenizer = T5Tokenizer.from_pretrained(str(model_dir), do_lower_case=False)
-    model = T5EncoderModel.from_pretrained(str(model_dir))
+    tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
+    model = T5EncoderModel.from_pretrained(model_dir)
     model = model.to(device).eval()
     if device.type == "cuda":
         model = model.half()
@@ -274,6 +274,11 @@ def main() -> None:
     for fasta in args.fasta:
         print(f"\n=== {fasta} ===")
         generate_for_fasta(args, fasta, tokenizer, model, device)
+        # Clear accelerator cache between fastas to avoid memory accumulation.
+        if device.type == "mps":
+            torch.mps.empty_cache()
+        elif device.type == "cuda":
+            torch.cuda.empty_cache()
 
     if device.type == "cuda":
         print(f"\nPeak CUDA memory: {torch.cuda.max_memory_allocated() // 1024**2} MiB")

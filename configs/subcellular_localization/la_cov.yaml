@@ -17,11 +17,11 @@ val_embeddings:   'data_files/deeploc_our_val_set.h5'
 test_embeddings:  'data_files/deeploc_test_set.h5'
 
 # Paths to Fasta files
-train_remapping: 'data_files/deeploc_our_train_set.fasta'
-val_remapping:   'data_files/deeploc_our_val_set.fasta'
-test_remapping:  'data_files/deeploc_test_set.fasta'
+train_remapping: 'data_files/deeploc_our_train_set_remapped.fasta'
+val_remapping:   'data_files/deeploc_our_val_set_remapped.fasta'
+test_remapping:  'data_files/deeploc_test_set_remapped.fasta'
 
-key_format: 'fasta_descriptor'
+key_format: 'hash'
 
 # Model parameters
 # LightAttention's two branches (o1 = attention-weighted sum, o2 = max) + bilinear
