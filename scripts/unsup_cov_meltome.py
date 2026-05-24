@@ -98,6 +98,11 @@ def main() -> None:
     parser.add_argument('--tasks', nargs='+', default=['loc'],
                         choices=['loc', 'meltome'],
                         help='One or more tasks, e.g. --tasks loc meltome')
+    parser.add_argument('--pretrain_epochs', type=int, default=100)
+    parser.add_argument('--pretrain_batch_size', type=int, default=256)
+    parser.add_argument('--pretrain_lr', type=float, default=1e-3)
+    parser.add_argument('--pretrain_patience', type=int, default=10)
+    parser.add_argument('--pretrain_log_iterations', type=int, default=10)
     args = parser.parse_args()
 
     tag = args.tag or datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -151,7 +156,7 @@ def main() -> None:
             ]
 
             t0 = datetime.datetime.now()
-            rc_pretrain = downstream_cmd(pretrain_cmd, pretrain_log_path)
+            rc_pretrain = run_one(pretrain_cmd, pretrain_log_path)
             pretrain_elapsed = (datetime.datetime.now() - t0).total_seconds() / 60.0
 
             # train_cov_unsup_meltome.py currently saves as cov_unsup_dc{dc}.pt.
@@ -194,7 +199,7 @@ def main() -> None:
                 "--config", downstream_config_path,
             ]
             t1 = datetime.datetime.now()
-            rc_train = downstream_cmd(downstream_cmd, downstream_log_path)
+            rc_train = run_one(downstream_cmd, downstream_log_path)
             train_elapsed = (datetime.datetime.now() - t1).total_seconds() / 60.0
 
             total_elapsed = pretrain_elapsed + train_elapsed

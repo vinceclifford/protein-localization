@@ -1,34 +1,35 @@
-experiment_name: 'cov_pooling_ProtT5'
-
-seed: 123
-eval_on_test: True
-num_epochs: 5000
-batch_size: 150
-log_iterations: 100
-patience: 80
+experiment_name: smoke_loc_cov_unsup
+model_type: PoolingFFN
+loss_function: JointCrossEntropy
+optimizer: Adam
 optimizer_parameters:
-  lr: 1.0e-4
+  lr: 0.0001
 
-# Paths to Embeddings (per-residue ProtT5)
-train_embeddings: 'data_files/deeploc_our_train_set.h5'
-val_embeddings:   'data_files/deeploc_our_val_set.h5'
-test_embeddings:  'data_files/deeploc_test_set.h5'
+num_epochs: 1
+batch_size: 2
+patience: 1
+seed: 123
+log_iterations: 1
+eval_on_test: false
 
-# Paths to Fasta files
-train_remapping: 'data_files/deeploc_our_train_set.fasta'
-val_remapping:   'data_files/deeploc_our_val_set.fasta'
-test_remapping:  'data_files/deeploc_test_set.fasta'
+train_embeddings: data_files/deeploc_our_train_set.h5
+train_remapping: data_files/deeploc_our_train_set.fasta
+val_embeddings: data_files/deeploc_our_val_set.h5
+val_remapping: data_files/deeploc_our_val_set.fasta
+test_embeddings: data_files/deeploc_test_set.h5
+test_remapping: data_files/deeploc_test_set.fasta
 
-key_format: 'fasta_descriptor'
+key_format: fasta_descriptor
+embedding_mode: lm
+max_length: 512
+unknown_solubility: null
 
-# Model parameters
-# Bilinear covariance: C = (1/L)(XL)^T(XR) in R^{d_c x d_c}, flattened to d_c^2 features.
-# Size sweep from the spec: proj_dim (d_c) in {8, 16, 24, 32, 48}.
-model_type: 'PoolingFFN'
 model_parameters:
-  output_dim: 10
-  hidden_dim: 32
+  output_dim: 12
+  hidden_dim: 4
   n_hidden_layers: 0
-  dropout: 0.25
-  pooling: 'cov_unsup'
-  proj_dim: 32        # d_c; cov features = d_c^2 = 1024
+  dropout: 0.0
+  pooling: cov_unsup
+  proj_dim: 2
+  cov_unsup_checkpoint: runs/cov_unsup_deeploc_smoke/cov_unsup_deeploc_dc2.pt
+  freeze_cov_projections: true

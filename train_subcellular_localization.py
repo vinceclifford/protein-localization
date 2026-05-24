@@ -30,6 +30,8 @@ def train(args):
     val_loader = DataLoader(val_set, batch_size=args.batch_size, collate_fn=collate_function)
 
     model = globals()[args.model_type](embeddings_dim=train_set[0][0].shape[-1], **args.model_parameters)
+    #for name, p in model.named_parameters():
+    #    print(name, p.requires_grad)
     print('trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     solver = Solver(model, args, globals()[args.optimizer], globals()[args.loss_function],
