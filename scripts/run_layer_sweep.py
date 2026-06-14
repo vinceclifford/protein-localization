@@ -87,8 +87,32 @@ DEFAULT_METHODS = ['mean', 'cov', 'hybrid', 'la', 'la_cov']
 # Path helpers  (mirror the naming from embed_layers_h5.py)
 # ──────────────────────────────────────────────────────────────────────────────
 
-def layer_h5(fasta: Path, layer: int) -> Path:
-    return fasta.with_name(f"{fasta.stem}_layer{layer:02d}.h5")
+# Single-layer dim for ProtT5-XL-U50 (one of the 24 transformer block outputs).
+PROT_T5_DIM = 1024
+# Layers concatenated to form the "stacked" embedding.
+STACKED_LAYERS = [6, 12, 18, 24]
+STACKED_DIM    = PROT_T5_DIM * len(STACKED_LAYERS)   # 4096
+
+
+def layer_h5(fasta: Path, layer) -> Path:
+    """Resolve the h5 file for a layer.  Integer layers use `_layerNN.h5`;
+    the string 'stacked' uses `_layerStacked.h5`."""
+    if isinstance(layer, str) and layer.lower() == 'stacked':
+        return fasta.with_name(f"{fasta.stem}_layerStacked.h5")
+    return fasta.with_name(f"{fasta.stem}_layer{int(layer):02d}.h5")
+
+
+def layer_tag(layer) -> str:
+    if isinstance(layer, str) and layer.lower() == 'stacked':
+        return 'Stacked'
+    return f'{int(layer):02d}'
+
+
+def parse_layer(s: str):
+    """argparse type for --layers: accepts integers or the keyword 'stacked'."""
+    if s.lower() == 'stacked':
+        return 'stacked'
+    return int(s)
 
 
 def remapped(fasta: Path) -> Path:
@@ -136,7 +160,8 @@ def validate_inputs(
 def make_config(
     base_path: Path, dst_path: Path,
     train_fasta: Path, val_fasta: Path, test_fasta: Path,
-    layer: int, seed: int, experiment_name: str,
+    layer, seed: int, experiment_name: str,
+    dc: int | None = None,
 ) -> None:
     with open(base_path) as f:
         cfg = yaml.safe_load(f)
@@ -150,6 +175,23 @@ def make_config(
     cfg['val_remapping']     = str(remapped(val_fasta))
     cfg['test_remapping']    = str(remapped(test_fasta))
     cfg['key_format']        = 'hash'
+
+    # Override proj_dim if a --dc was passed and the method has proj_dim.
+    mp = cfg.setdefault('model_parameters', {})
+    if dc is not None and 'proj_dim' in mp:
+        mp['proj_dim'] = dc
+
+    # Stacked layer: embeddings are 4096-dim (4 × 1024). The trainer detects
+    # this automatically from train_set[0][0].shape[-1] and passes it as
+    # `embeddings_dim` to the model constructor — we must NOT also set it in
+    # model_parameters or we'd get "multiple values for keyword argument".
+    if isinstance(layer, str) and layer.lower() == 'stacked':
+        # MPS has a 2^31 element limit on tensors. With 4096-dim embeddings
+        # and max_length=6000, batch must stay <= 87. Cap at 64 for headroom.
+        STACKED_BATCH_CAP = 64
+        cur = cfg.get('batch_size', STACKED_BATCH_CAP)
+        if cur > STACKED_BATCH_CAP:
+            cfg['batch_size'] = STACKED_BATCH_CAP
 
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     with open(dst_path, 'w') as f:
@@ -215,56 +257,96 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description='Layer sweep: head-to-head pooling comparison at each ProtX layer.'
     )
-    p.add_argument('--train-fasta', type=Path, required=True)
-    p.add_argument('--val-fasta',   type=Path, required=True)
-    p.add_argument('--test-fasta',  type=Path, required=True)
-    p.add_argument('--task',    default='meltome', choices=['loc', 'meltome'])
+    p.add_argument('--tasks',   nargs='+', default=['meltome'],
+                   choices=['loc', 'meltome'],
+                   help='One or more tasks. Each task auto-resolves its FASTA paths '
+                        'unless --train-fasta / --val-fasta / --test-fasta are given '
+                        '(in which case they apply to all listed tasks).')
+    p.add_argument('--train-fasta', type=Path, default=None)
+    p.add_argument('--val-fasta',   type=Path, default=None)
+    p.add_argument('--test-fasta',  type=Path, default=None)
     p.add_argument('--methods', nargs='+', default=DEFAULT_METHODS,
                    choices=['mean', 'cov', 'hybrid', 'la', 'la_cov'])
-    p.add_argument('--layers',  nargs='+', type=int, default=DEFAULT_LAYERS,
-                   help='ProtX layers to evaluate. Default: early/middle/late/last = 6 12 18 24.')
-    p.add_argument('--seed',    type=int, default=123)
+    p.add_argument('--layers',  nargs='+', type=parse_layer, default=DEFAULT_LAYERS,
+                   help='ProtX layers to evaluate. Default: early/middle/late/last = 6 12 18 24. '
+                        'Pass the keyword "stacked" to also include the concatenated '
+                        '6+12+18+24 (4096-dim) variant — requires `_layerStacked.h5` to exist '
+                        '(use scripts/stack_layers.py to generate it).')
+    p.add_argument('--seeds',   nargs='+', type=int, default=[123],
+                   help='One or more random seeds, e.g. --seeds 657 921 969.')
+    p.add_argument('--dc',      type=int, default=None,
+                   help='Override proj_dim (d_c) for cov/hybrid/la_cov methods. '
+                        'Falls back to the base config value if omitted.')
     p.add_argument('--tag',     default=None, help='Sweep folder name (default: timestamped).')
     return p.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    train_script   = TRAIN_SCRIPTS[args.task]
-    task_base_cfgs = BASE_CONFIGS[args.task]
+# ──────────────────────────────────────────────────────────────────────────────
+# Per-task default FASTA paths
+# ──────────────────────────────────────────────────────────────────────────────
 
-    tag       = args.tag or datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    sweep_dir = PROJECT_ROOT / 'sweeps' / f'layer_{tag}'
-    print(f'Sweep dir: {sweep_dir}')
-    print(f'Task: {args.task}   Train script: {train_script}')
-    print(f'Layers:  {args.layers}')
-    print(f'Methods: {args.methods}')
+DEFAULT_TASK_FASTAS = {
+    'loc': {
+        'train': PROJECT_ROOT / 'data_files' / 'deeploc_our_train_set.fasta',
+        'val':   PROJECT_ROOT / 'data_files' / 'deeploc_our_val_set.fasta',
+        'test':  PROJECT_ROOT / 'data_files' / 'deeploc_test_set.fasta',
+    },
+    'meltome': {
+        'train': PROJECT_ROOT / 'data_files' / 'flip_meltome' / 'prepared' / 'human_cell' / 'human_cell_train.fasta',
+        'val':   PROJECT_ROOT / 'data_files' / 'flip_meltome' / 'prepared' / 'human_cell' / 'human_cell_val.fasta',
+        'test':  PROJECT_ROOT / 'data_files' / 'flip_meltome' / 'prepared' / 'human_cell' / 'human_cell_test.fasta',
+    },
+}
 
-    # ── Validate ──────────────────────────────────────────────────────────────
-    ready_layers = validate_inputs(
-        args.train_fasta, args.val_fasta, args.test_fasta, args.layers,
-    )
+
+def _resolve_fastas(task: str, args) -> tuple[Path, Path, Path]:
+    """Pick FASTA paths: explicit CLI overrides first, else per-task defaults."""
+    defaults = DEFAULT_TASK_FASTAS[task]
+    train = args.train_fasta or defaults['train']
+    val   = args.val_fasta   or defaults['val']
+    test  = args.test_fasta  or defaults['test']
+    return train, val, test
+
+
+def run_task(task: str, args, sweep_dir: Path) -> list[dict]:
+    train_script   = TRAIN_SCRIPTS[task]
+    task_base_cfgs = BASE_CONFIGS[task]
+    train_fasta, val_fasta, test_fasta = _resolve_fastas(task, args)
+
+    print(f'\n{"=" * 70}')
+    print(f'Task: {task}   Train script: {train_script}')
+    print(f'  train: {train_fasta}')
+    print(f'  val:   {val_fasta}')
+    print(f'  test:  {test_fasta}')
+
+    ready_layers = validate_inputs(train_fasta, val_fasta, test_fasta, args.layers)
     if not ready_layers:
-        sys.exit('No layers have H5 files ready — run embed_layers_h5.py first.')
+        print(f'No layers have H5 files ready for {task}; skipping this task.')
+        return []
 
-    # ── Run grid: (layer, method) ──────────────────────────────────────────────
-    plan = [(layer, method) for layer in ready_layers for method in args.methods]
-    print(f'\n{len(plan)} runs total ({len(ready_layers)} layers × {len(args.methods)} methods)\n')
+    plan = [(seed, layer, method)
+             for seed in args.seeds
+             for layer in ready_layers
+             for method in args.methods]
+    print(f'{len(plan)} runs for task={task} '
+          f'({len(args.seeds)} seeds × {len(ready_layers)} layers × {len(args.methods)} methods)\n')
 
     all_rows: list[dict] = []
-
-    for i, (layer, method) in enumerate(plan, 1):
-        exp_name    = f'layer{layer:02d}_{method}_{args.task}_seed{args.seed}'
-        config_path = sweep_dir / 'configs' / f'layer{layer:02d}_{method}.yaml'
-        log_path    = sweep_dir / 'logs'    / f'layer{layer:02d}_{method}.log'
+    for i, (seed, layer, method) in enumerate(plan, 1):
+        dc_tag      = f'_dc{args.dc}' if args.dc is not None else ''
+        ltag        = layer_tag(layer)
+        exp_name    = f'layer{ltag}_{method}{dc_tag}_{task}_seed{seed}'
+        config_path = sweep_dir / 'configs' / f'{task}_layer{ltag}_{method}{dc_tag}_seed{seed}.yaml'
+        log_path    = sweep_dir / 'logs'    / f'{task}_layer{ltag}_{method}{dc_tag}_seed{seed}.log'
 
         make_config(
             task_base_cfgs[method], config_path,
-            args.train_fasta, args.val_fasta, args.test_fasta,
-            layer, args.seed, exp_name,
+            train_fasta, val_fasta, test_fasta,
+            layer, seed, exp_name, dc=args.dc,
         )
 
-        print(f'[{i:2d}/{len(plan)}] layer={layer:2d}  method={method}')
+        print(f'[{i:2d}/{len(plan)}] task={task}  seed={seed}  '
+              f'layer={ltag:>8}  method={method}')
         t0 = datetime.datetime.now()
         rc = run_one(config_path, log_path, train_script)
         elapsed = (datetime.datetime.now() - t0).total_seconds() / 60.0
@@ -275,37 +357,66 @@ def main() -> None:
         if run_dir:
             eval_file = run_dir / 'evaluation_test_set_after_train.txt'
             if eval_file.exists():
-                metrics = parse_eval(eval_file, args.task)
+                metrics = parse_eval(eval_file, task)
 
-        all_rows.append({'layer': layer, 'method': method, 'rc': rc,
+        all_rows.append({'task': task, 'layer': layer, 'method': method,
+                         'seed': seed, 'rc': rc,
                          'elapsed_min': round(elapsed, 1), **metrics})
+    return all_rows
 
-    # ── Summary table ─────────────────────────────────────────────────────────
+
+def main() -> None:
+    args = parse_args()
+
+    tag       = args.tag or datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    sweep_dir = PROJECT_ROOT / 'sweeps' / f'layer_{tag}'
+    print(f'Sweep dir: {sweep_dir}')
+    print(f'Tasks:   {args.tasks}')
+    print(f'Layers:  {args.layers}')
+    print(f'Methods: {args.methods}')
+    print(f'd_c:     {args.dc if args.dc is not None else "from base configs"}')
+    print(f'Seeds:   {args.seeds}')
+
+    all_rows: list[dict] = []
+    for task in args.tasks:
+        all_rows.extend(run_task(task, args, sweep_dir))
+
+    # ── Per-task summary tables ───────────────────────────────────────────────
     print('\n' + '=' * 70)
-    print('Layer × method sweep complete.\n')
+    print('Layer × method sweep complete.')
 
-    if args.task == 'meltome':
-        print(f'{"Layer":>6}  {"Method":8}  {"SpearmanR":>10}  {"±stderr":>8}  {"MSE":>12}')
-        for r in all_rows:
-            rho = r.get('spearman_r', float('nan'))
-            se  = r.get('spearman_stderr', float('nan'))
-            mse = r.get('mse', float('nan'))
-            print(f'{r["layer"]:>6}  {r["method"]:8}  {rho:>10.4f}  {se:>8.4f}  {mse:>12.7f}')
-    else:
-        print(f'{"Layer":>6}  {"Method":8}  {"Accuracy":>9}  {"MCC":>8}')
-        for r in all_rows:
-            acc = r.get('accuracy', float('nan'))
-            mcc = r.get('mcc', float('nan'))
-            print(f'{r["layer"]:>6}  {r["method"]:8}  {acc:>9.4f}  {mcc:>8.4f}')
+    for task in args.tasks:
+        task_rows = [r for r in all_rows if r.get('task') == task]
+        if not task_rows:
+            continue
+        print(f'\n--- Task: {task} ---')
+        if task == 'meltome':
+            print(f'{"Layer":>8}  {"Method":8}  {"Seed":>5}  '
+                  f'{"SpearmanR":>10}  {"±stderr":>8}  {"MSE":>12}')
+            for r in task_rows:
+                rho = r.get('spearman_r', float('nan'))
+                se  = r.get('spearman_stderr', float('nan'))
+                mse = r.get('mse', float('nan'))
+                print(f'{str(r["layer"]):>8}  {r["method"]:8}  {r.get("seed", ""):>5}  '
+                      f'{rho:>10.4f}  {se:>8.4f}  {mse:>12.7f}')
+        else:
+            print(f'{"Layer":>8}  {"Method":8}  {"Seed":>5}  {"Accuracy":>9}  {"MCC":>8}')
+            for r in task_rows:
+                acc = r.get('accuracy', float('nan'))
+                mcc = r.get('mcc', float('nan'))
+                print(f'{str(r["layer"]):>8}  {r["method"]:8}  {r.get("seed", ""):>5}  '
+                      f'{acc:>9.4f}  {mcc:>8.4f}')
 
-    # ── CSV ───────────────────────────────────────────────────────────────────
+    # ── CSV (one combined file with a task column) ────────────────────────────
     csv_path = sweep_dir / 'layer_results.csv'
     if all_rows:
         sweep_dir.mkdir(parents=True, exist_ok=True)
+        fields = sorted({k for r in all_rows for k in r.keys()})
         with open(csv_path, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=list(all_rows[0].keys()))
+            writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
-            writer.writerows(all_rows)
+            for r in all_rows:
+                writer.writerow({k: r.get(k, '') for k in fields})
         print(f'\nResults → {csv_path}')
         print(f'Plot    → python scripts/plot_layer_sweep.py --csv {csv_path}')
 
