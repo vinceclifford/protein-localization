@@ -43,6 +43,7 @@ Two training regimes for the projections:
 .
 ├── train_subcellular_localization.py   # DeepLoc training entry point
 ├── train_meltome.py                    # Meltome regression training entry point
+├── train_cov_unsup.py                  # Unsupervised covariance pretraining (PCA init + SGD)
 ├── inference.py / inference_meltome.py
 ├── solver.py                           # Localisation training/eval loop
 ├── solver_meltome.py                   # Meltome training/eval loop (Spearman R)
@@ -67,14 +68,24 @@ Two training regimes for the projections:
 │       └── la_cov.yaml                 #   seed 123  (LightAttention + covariance)
 │
 └── scripts/
-    ├── embed_bio_embeddings_h5.py      # Generate ProtX H5 embeddings — final layer
-    ├── embed_layers_h5.py              # Generate H5 files for N transformer layers
-    ├── prepare_flip_meltome_fastas.py  # FLIP CSV → train/val/test FASTAs
-    ├── run_sweep.py                    # Pooling-method + d_c sweep (Exp 1 & 2)
-    ├── run_layer_sweep.py              # Layer sweep — head-to-head at each layer (Exp 4)
-    ├── collect_results.py              # Parse run dirs → results.csv
-    ├── plot_sweep.py                   # Visualise pooling sweep results
-    └── plot_layer_sweep.py             # Visualise layer × method grid
+    ├── data/                           # input generation
+    │   ├── embed_layers_h5.py          #   ProtT5 H5 embeddings (all layers + final)
+    │   ├── stack_layers.py             #   Concatenate per-layer H5 → *_layerStacked.h5
+    │   └── prepare_flip_meltome_fastas.py  # FLIP CSV → train/val/test FASTAs
+    ├── experiments/                    # run drivers
+    │   ├── run_sweep.py                #   Pooling-method + d_c sweep (Exp 1 & 2)
+    │   ├── run_cov_unsup_pretrain.py   #   Pretrain frozen projections for every d_c (Exp 2)
+    │   ├── run_projection_comparison.py#   Part A: reconstruction across projection datasets (Exp 2)
+    │   └── run_layer_sweep.py          #   Layer sweep — head-to-head at each layer (Exp 3)
+    └── analysis/                       # results, figures, stats
+        ├── collect_results.py          #   Parse run dirs → master results.csv (--runs-dir, layer column)
+        ├── plot_dc.py                  #   d_c sweep figures (bars, d_c curves, head-to-head; --seeds)
+        ├── plot_layers.py              #   Layer sweep figures (metric vs layer; reads master results.csv)
+        ├── make_results_xlsx.py        #   results.csv → results.xlsx (one tab per task)
+        ├── significance_tests.py       #   Per-seed tests + Fisher (McNemar / Wilcoxon / Williams)
+        ├── extract_features.py         #   Dump test-set representations (random/untrained/mean/cov)
+        ├── plot_tsne.py                #   4-panel UMAP/t-SNE of those representations + silhouette/kNN
+        └── eval_run.py                 #   Re-evaluate a single run on demand
 ```
 
 ---
@@ -85,6 +96,7 @@ Two training regimes for the projections:
 |---|---|---|---|
 | Mean pooling | 0 | d | baseline |
 | Covariance (supervised) | 2·d·d_c | d_c² | L, R trained end-to-end |
+| Covariance (unsupervised) | 2·d·d_c (frozen) | d_c² | L, R pretrained by reconstruction, then frozen (Exp 2) |
 | Hybrid [μ; flat(C)] | 2·d·d_c | d + d_c² | concatenation |
 | LightAttention | — | 2d | conv attention-weighted + max pool |
 | LightAttentionCov | 2·d·d_c | 2d + d_c² | LA + covariance branch |
@@ -119,25 +131,25 @@ data_files/deeploc_our_val_set.{h5,fasta}
 data_files/deeploc_test_set.{h5,fasta}
 ```
 
-If FASTA files are missing, regenerate from H5 keys:
-```bash
-python scripts/regen_fasta_from_h5.py
-```
+The `*_remapped.fasta` files are written automatically by `embed_layers_h5.py`
+when generating the embeddings, and are bundled with the H5 files on the project
+Google Drive — download them there if missing.
 
 ### FLIP Meltome (regression)
 
 ```bash
 # 1. Convert FLIP CSV → train/val/test FASTAs
-python scripts/prepare_flip_meltome_fastas.py \
+python scripts/data/prepare_flip_meltome_fastas.py \
     --csv  data_files/flip_meltome/splits/human_cell.csv \
     --output-dir data_files/flip_meltome/prepared/human_cell \
     --prefix human_cell
 
-# 2. Generate final-layer ProtX embeddings (one-time, GPU-intensive)
-python scripts/embed_bio_embeddings_h5.py \
-    data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
-    data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
-    data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta
+# 2. Generate ProtT5 embeddings (one-time, GPU-intensive; --layers 24 = final layer)
+python scripts/data/embed_layers_h5.py \
+    --fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
+            data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
+            data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
+    --layers 24
 ```
 
 ---
@@ -147,16 +159,16 @@ python scripts/embed_bio_embeddings_h5.py \
 ```
 PIPELINE A — Pooling method + d_c sweep (Experiments 1 & 2)
 
-  embed_bio_embeddings_h5.py          final-layer H5 files (one-time)
+  embed_layers_h5.py --layers 24      final-layer H5 files (one-time)
           │
           ▼
   run_sweep.py --task meltome|loc     trains all (method, d_c) pairs
           │
           ▼
-  collect_results.py                  parses run dirs → results.csv
+  collect_results.py                  parses run dirs → master results.csv
           │
           ▼
-  plot_sweep.py                       sweep_dc_curve.png + sweep_bars.png
+  plot_dc.py                          bars / d_c curves / head-to-head
 
 
 PIPELINE B — Layer sweep (Experiment 3)
@@ -167,7 +179,7 @@ PIPELINE B — Layer sweep (Experiment 3)
   run_layer_sweep.py --task meltome|loc     trains all (layer, method) pairs
           │
           ▼
-  plot_layer_sweep.py                       layer_curve.png
+  collect_results.py → plot_layers.py       layer_curve_averaged.png
 ```
 
 **Key difference:** Pipeline A always uses the same (final-layer) H5 files. Pipeline B requires separate per-layer H5 files generated by `embed_layers_h5.py`.
@@ -182,7 +194,7 @@ PIPELINE B — Layer sweep (Experiment 3)
 (`mean` has no d_c so contributes 1 × 3 × 2 = 6 runs; `cov` and `hybrid` contribute 5 × 3 × 2 = 30 each.)
 
 ```bash
-python scripts/run_sweep.py \
+python scripts/experiments/run_sweep.py \
     --tasks loc meltome \
     --methods mean cov hybrid \
     --seeds 123 969 309 \
@@ -191,17 +203,48 @@ python scripts/run_sweep.py \
 
 Collect and visualise:
 ```bash
-python scripts/collect_results.py --sweep sweeps/<tag>
-python scripts/plot_sweep.py      --sweep sweeps/<tag>
+python scripts/analysis/collect_results.py --sweep sweeps/<tag> --out results/results.csv
+python scripts/analysis/plot_dc.py         --csv results/results.csv --out results/figures/dc_sweep --seeds 657 921 969
 ```
 
-Outputs `sweep_dc_curve.png` (metric vs d_c² per method, averaged over seeds) and `sweep_bars.png`.
+Outputs bars, d_c curves (metric vs d_c per method, averaged over seeds), head-to-head, and a summary table.
 
 ### Experiment 2 — Supervised vs. unsupervised bottleneck
 
-Train L, R to reconstruct XᵀX (unsupervised), freeze them, then reuse across tasks. Compare against per-task supervised bottlenecks.
+Learn the projections `L, R` **without labels** by reconstructing the embedding
+covariance, freeze them, and reuse across both tasks — then compare against the
+per-task **supervised** bottleneck (Experiment 1).
 
-> Not yet implemented.
+The pretrainer is a **linear covariance autoencoder**: encode `C = Lᵀ M R`,
+decode `M̂ = L C Rᵀ = (LLᵀ) M (RRᵀ)` (tied weights), trained on reconstruction
+loss `‖M − M̂‖²_F` with `M = XᵀX`. Its global optimum is **PCA**, so we
+initialize `L = R =` the top-`d_c` eigenvectors of the *average* covariance and
+then refine with SGD (`--pca_init`).
+
+**Step 1 — pretrain the projections once, on the union of all task train splits:**
+```bash
+# all d_c in one go (writes runs/cov_unsup_pretrained/cov_unsup_dc{dc}.pt)
+python scripts/experiments/run_cov_unsup_pretrain.py --pca_init
+
+# or a single d_c
+python train_cov_unsup.py --config configs/cov_unsup_pretrain/union.yaml --proj_dim 48 --pca_init
+```
+`configs/cov_unsup_pretrain/union.yaml` lists the train-only data sources (DeepLoc +
+Meltome). `--pca_only` saves the closed-form PCA solution without SGD refinement.
+
+**Step 2 — train downstream probes with the frozen projections:**
+```bash
+python scripts/experiments/run_sweep.py --tasks loc --methods cov_unsup \
+    --dcs 8 16 24 32 48 --seeds 657 921 969 \
+    --cov_unsup_dir runs/cov_unsup_pretrained
+```
+`cov_unsup` loads `L, R` from the matching per-`d_c` checkpoint and freezes them
+(`freeze_cov_projections: true`); only the probe head trains. Point
+`--cov_unsup_dir` at `runs/cov_unsup_<task>` to use per-task (split) projections
+instead of the shared union, for the ablation.
+
+> Reconstruction quality (`rel_err = ‖M−M̂‖_F/‖M‖_F`) is a **diagnostic**, not the
+> objective — the reported metric is downstream task performance.
 
 ### Experiment 3 — Layer sweep
 
@@ -209,7 +252,7 @@ Repeat the comparison at a handful of ProtT5 layers (early / middle / late / las
 
 **Step 1 — generate per-layer embeddings (one-time):**
 ```bash
-python scripts/embed_layers_h5.py \
+python scripts/data/embed_layers_h5.py \
     --fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
             data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
             data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
@@ -218,19 +261,20 @@ python scripts/embed_layers_h5.py \
 
 **Step 2 — run the layer × method sweep:**
 ```bash
-python scripts/run_layer_sweep.py \
+python scripts/experiments/run_layer_sweep.py \
     --train-fasta data_files/flip_meltome/prepared/human_cell/human_cell_train.fasta \
     --val-fasta   data_files/flip_meltome/prepared/human_cell/human_cell_val.fasta \
     --test-fasta  data_files/flip_meltome/prepared/human_cell/human_cell_test.fasta \
     --task meltome --methods mean cov hybrid --layers 6 12 18 24
 ```
 
-**Step 3 — plot:**
+**Step 3 — collect and plot:**
 ```bash
-python scripts/plot_layer_sweep.py --csv sweeps/layer_<tag>/layer_results.csv
+python scripts/analysis/collect_results.py --runs-dir runs --out results/results.csv
+python scripts/analysis/plot_layers.py     --csv results/results.csv --out results/figures/layer_sweep --seeds 657 921 969
 ```
 
-Produces `layer_curve.png`: metric vs. layer depth, one line per pooling method.
+Produces `layer_curve_averaged_{loc,meltome}.png`: metric vs. layer depth, one line per pooling method (averaged over seeds).
 
 ---
 
@@ -245,8 +289,19 @@ All metrics include bootstrap standard errors (200 resamples, `--n-draws`).
 
 ---
 
+## Statistical significance
+
+Per-seed tests combined across seeds with **Fisher's method** (independent
+experiments → combine p-values, not pool predictions):
+
+```bash
+# matched d_c across methods; mean has no d_c
+python scripts/significance_tests.py --runs_root <dir> --dc 48
+```
+- DeepLoc: McNemar's exact test on per-protein correctness.
+- Meltome: Wilcoxon signed-rank on |error| and Williams' test on Spearman R.
+
 ## Stretch goals
 
-- Unsupervised covariance bottleneck (Experiment 2)
 - Pool PaRTI (PageRank-based pooling)
 - Binary membrane/soluble classification as a third task

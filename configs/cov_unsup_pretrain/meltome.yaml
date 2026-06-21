@@ -1,0 +1,23 @@
+experiment_name: 'cov_unsup_pretrain_meltome'
+
+# Per-task (Meltome-only) covariance-projection pretraining — for the
+# projection-dataset ablation (shared union vs task-specific).
+
+seed: 657
+num_epochs: 100
+batch_size: 8
+patience: 10
+lr: 1.0e-3
+proj_dim: 48
+log_iterations: 50
+min_delta: 0.005
+output_dir: 'runs/cov_unsup_meltome'
+
+max_length: 2048
+embedding_mode: 'lm'
+
+sources:
+  - dataset: 'meltome'
+    embeddings: 'data_files/flip_meltome/prepared/human_cell/human_cell_train_layer24.h5'
+    remapping:  'data_files/flip_meltome/prepared/human_cell/human_cell_train_remapped.fasta'
+    key_format: 'hash'

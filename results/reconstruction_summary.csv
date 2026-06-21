@@ -1,0 +1,10 @@
+dataset,seed,d_c,rel_err,loss,checkpoint,rc
+union,657,48,0.8214228147271605,1.975666885445531e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/union_seed657/cov_unsup_dc48.pt,0
+union,921,48,0.8223726986382551,1.9783897479545034e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/union_seed921/cov_unsup_dc48.pt,0
+union,969,48,0.8190633598001449,1.9538662835566912e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/union_seed969/cov_unsup_dc48.pt,0
+deeploc,657,48,0.8306743698083562,2.179147596697967e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed657/cov_unsup_dc48.pt,0
+deeploc,921,48,0.8312392386098534,2.1729514519300014e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt,0
+deeploc,969,48,0.8311710524193473,2.1824339389784613e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed969/cov_unsup_dc48.pt,0
+meltome,657,48,0.7838418313570951,1.487215337600505e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/meltome_seed657/cov_unsup_dc48.pt,0
+meltome,921,48,0.7832925209398285,1.4807157810176132e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/meltome_seed921/cov_unsup_dc48.pt,0
+meltome,969,48,0.7826291334115717,1.4713178383784504e-05,/Users/vincentclifford/protein-localization/runs/cov_unsup_compare/meltome_seed969/cov_unsup_dc48.pt,0

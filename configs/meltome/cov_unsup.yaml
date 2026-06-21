@@ -14,10 +14,10 @@ target: 'meltome'
 max_length: 6000
 embedding_mode: 'lm'
 
-# Paths to FLIP Meltome mixed split embeddings
-train_embeddings: 'data_files/flip_meltome/prepared/human_cell/human_cell_train.h5'
-val_embeddings:   'data_files/flip_meltome/prepared/human_cell/human_cell_val.h5'
-test_embeddings:  'data_files/flip_meltome/prepared/human_cell/human_cell_test.h5'
+# Paths to FLIP Meltome mixed split embeddings (layer-24, matching the frozen projections)
+train_embeddings: 'data_files/flip_meltome/prepared/human_cell/human_cell_train_layer24.h5'
+val_embeddings:   'data_files/flip_meltome/prepared/human_cell/human_cell_val_layer24.h5'
+test_embeddings:  'data_files/flip_meltome/prepared/human_cell/human_cell_test_layer24.h5'
 
 train_remapping: 'data_files/flip_meltome/prepared/human_cell/human_cell_train_remapped.fasta'
 val_remapping:   'data_files/flip_meltome/prepared/human_cell/human_cell_val_remapped.fasta'

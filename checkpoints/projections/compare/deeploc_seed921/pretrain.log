@@ -1,0 +1,336 @@
+[ Using Seed :  921  ]
+max_length: 2048
+embedding_mode: lm
+source: localization
+  embeddings: /Users/vincentclifford/Downloads/deeploc_our_train_set_layer24.h5
+  remapping:  data_files/deeploc_our_train_set_remapped.fasta
+  key_format: hash
+  size:       9391
+union dataset size: 9391
+device: mps
+embeddings_dim: 1024
+proj_dim: 48
+trainable params: 98304
+computing PCA init basis (one pass over data)...
+initialized L, R from top-48 eigenvectors of avg second moment
+[PCA init] reconstruction loss: 0.0000247  rel_err: 0.8586
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 1 Iter 50/1174] reconstruction loss: 0.0000158  rel_err: 0.8709
+[Epoch 1 Iter 100/1174] reconstruction loss: 0.0000193  rel_err: 0.8243
+[Epoch 1 Iter 150/1174] reconstruction loss: 0.0000196  rel_err: 0.8311
+[Epoch 1 Iter 200/1174] reconstruction loss: 0.0000207  rel_err: 0.8439
+[Epoch 1 Iter 250/1174] reconstruction loss: 0.0000189  rel_err: 0.8327
+[Epoch 1 Iter 300/1174] reconstruction loss: 0.0000181  rel_err: 0.8678
+[Epoch 1 Iter 350/1174] reconstruction loss: 0.0000191  rel_err: 0.8564
+[Epoch 1 Iter 400/1174] reconstruction loss: 0.0000156  rel_err: 0.8513
+[Epoch 1 Iter 450/1174] reconstruction loss: 0.0000159  rel_err: 0.8465
+[Epoch 1 Iter 500/1174] reconstruction loss: 0.0000192  rel_err: 0.8497
+[Epoch 1 Iter 550/1174] reconstruction loss: 0.0000149  rel_err: 0.8241
+[Epoch 1 Iter 600/1174] reconstruction loss: 0.0000165  rel_err: 0.7936
+[Epoch 1 Iter 650/1174] reconstruction loss: 0.0000124  rel_err: 0.8082
+[Epoch 1 Iter 700/1174] reconstruction loss: 0.0000248  rel_err: 0.7987
+[Epoch 1 Iter 750/1174] reconstruction loss: 0.0000212  rel_err: 0.8100
+[Epoch 1 Iter 800/1174] reconstruction loss: 0.0000221  rel_err: 0.8520
+[Epoch 1 Iter 850/1174] reconstruction loss: 0.0000332  rel_err: 0.7802
+[Epoch 1 Iter 900/1174] reconstruction loss: 0.0000151  rel_err: 0.8442
+[Epoch 1 Iter 950/1174] reconstruction loss: 0.0000177  rel_err: 0.8470
+[Epoch 1 Iter 1000/1174] reconstruction loss: 0.0000318  rel_err: 0.8310
+[Epoch 1 Iter 1050/1174] reconstruction loss: 0.0000181  rel_err: 0.8424
+[Epoch 1 Iter 1100/1174] reconstruction loss: 0.0000181  rel_err: 0.7951
+[Epoch 1 Iter 1150/1174] reconstruction loss: 0.0000256  rel_err: 0.8084
+[Epoch 1] reconstruction loss: 0.0000227  rel_err: 0.8393
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 2 Iter 50/1174] reconstruction loss: 0.0000164  rel_err: 0.8293
+[Epoch 2 Iter 100/1174] reconstruction loss: 0.0000161  rel_err: 0.8500
+[Epoch 2 Iter 150/1174] reconstruction loss: 0.0000130  rel_err: 0.8285
+[Epoch 2 Iter 200/1174] reconstruction loss: 0.0000134  rel_err: 0.8556
+[Epoch 2 Iter 250/1174] reconstruction loss: 0.0000193  rel_err: 0.8420
+[Epoch 2 Iter 300/1174] reconstruction loss: 0.0000189  rel_err: 0.8410
+[Epoch 2 Iter 350/1174] reconstruction loss: 0.0000294  rel_err: 0.8332
+[Epoch 2 Iter 400/1174] reconstruction loss: 0.0000186  rel_err: 0.8060
+[Epoch 2 Iter 450/1174] reconstruction loss: 0.0000204  rel_err: 0.8612
+[Epoch 2 Iter 500/1174] reconstruction loss: 0.0000172  rel_err: 0.7612
+[Epoch 2 Iter 550/1174] reconstruction loss: 0.0000296  rel_err: 0.8564
+[Epoch 2 Iter 600/1174] reconstruction loss: 0.0000231  rel_err: 0.8222
+[Epoch 2 Iter 650/1174] reconstruction loss: 0.0000187  rel_err: 0.8011
+[Epoch 2 Iter 700/1174] reconstruction loss: 0.0000169  rel_err: 0.8422
+[Epoch 2 Iter 750/1174] reconstruction loss: 0.0000210  rel_err: 0.8234
+[Epoch 2 Iter 800/1174] reconstruction loss: 0.0000172  rel_err: 0.8078
+[Epoch 2 Iter 850/1174] reconstruction loss: 0.0000245  rel_err: 0.8350
+[Epoch 2 Iter 900/1174] reconstruction loss: 0.0000290  rel_err: 0.8576
+[Epoch 2 Iter 950/1174] reconstruction loss: 0.0000171  rel_err: 0.8277
+[Epoch 2 Iter 1000/1174] reconstruction loss: 0.0000168  rel_err: 0.8414
+[Epoch 2 Iter 1050/1174] reconstruction loss: 0.0000182  rel_err: 0.8408
+[Epoch 2 Iter 1100/1174] reconstruction loss: 0.0000223  rel_err: 0.8300
+[Epoch 2 Iter 1150/1174] reconstruction loss: 0.0000161  rel_err: 0.8054
+[Epoch 2] reconstruction loss: 0.0000220  rel_err: 0.8318
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 3 Iter 50/1174] reconstruction loss: 0.0000228  rel_err: 0.8213
+[Epoch 3 Iter 100/1174] reconstruction loss: 0.0000315  rel_err: 0.8767
+[Epoch 3 Iter 150/1174] reconstruction loss: 0.0000195  rel_err: 0.8352
+[Epoch 3 Iter 200/1174] reconstruction loss: 0.0000330  rel_err: 0.8320
+[Epoch 3 Iter 250/1174] reconstruction loss: 0.0000225  rel_err: 0.8538
+[Epoch 3 Iter 300/1174] reconstruction loss: 0.0000133  rel_err: 0.8333
+[Epoch 3 Iter 350/1174] reconstruction loss: 0.0000179  rel_err: 0.7777
+[Epoch 3 Iter 400/1174] reconstruction loss: 0.0000253  rel_err: 0.8608
+[Epoch 3 Iter 450/1174] reconstruction loss: 0.0000295  rel_err: 0.8068
+[Epoch 3 Iter 500/1174] reconstruction loss: 0.0000159  rel_err: 0.8742
+[Epoch 3 Iter 550/1174] reconstruction loss: 0.0000165  rel_err: 0.8332
+[Epoch 3 Iter 600/1174] reconstruction loss: 0.0000170  rel_err: 0.8202
+[Epoch 3 Iter 650/1174] reconstruction loss: 0.0000217  rel_err: 0.8806
+[Epoch 3 Iter 700/1174] reconstruction loss: 0.0000217  rel_err: 0.8308
+[Epoch 3 Iter 750/1174] reconstruction loss: 0.0000228  rel_err: 0.8335
+[Epoch 3 Iter 800/1174] reconstruction loss: 0.0000152  rel_err: 0.8223
+[Epoch 3 Iter 850/1174] reconstruction loss: 0.0000139  rel_err: 0.8319
+[Epoch 3 Iter 900/1174] reconstruction loss: 0.0000256  rel_err: 0.8101
+[Epoch 3 Iter 950/1174] reconstruction loss: 0.0000184  rel_err: 0.7963
+[Epoch 3 Iter 1000/1174] reconstruction loss: 0.0000258  rel_err: 0.8383
+[Epoch 3 Iter 1050/1174] reconstruction loss: 0.0000196  rel_err: 0.8259
+[Epoch 3 Iter 1100/1174] reconstruction loss: 0.0000234  rel_err: 0.8265
+[Epoch 3 Iter 1150/1174] reconstruction loss: 0.0000282  rel_err: 0.8912
+[Epoch 3] reconstruction loss: 0.0000219  rel_err: 0.8308
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 4 Iter 50/1174] reconstruction loss: 0.0000199  rel_err: 0.8287
+[Epoch 4 Iter 100/1174] reconstruction loss: 0.0000203  rel_err: 0.8426
+[Epoch 4 Iter 150/1174] reconstruction loss: 0.0000183  rel_err: 0.8127
+[Epoch 4 Iter 200/1174] reconstruction loss: 0.0000273  rel_err: 0.8510
+[Epoch 4 Iter 250/1174] reconstruction loss: 0.0000134  rel_err: 0.8735
+[Epoch 4 Iter 300/1174] reconstruction loss: 0.0000216  rel_err: 0.8460
+[Epoch 4 Iter 350/1174] reconstruction loss: 0.0000258  rel_err: 0.8677
+[Epoch 4 Iter 400/1174] reconstruction loss: 0.0000138  rel_err: 0.7550
+[Epoch 4 Iter 450/1174] reconstruction loss: 0.0000189  rel_err: 0.8041
+[Epoch 4 Iter 500/1174] reconstruction loss: 0.0000217  rel_err: 0.8048
+[Epoch 4 Iter 550/1174] reconstruction loss: 0.0000267  rel_err: 0.8704
+[Epoch 4 Iter 600/1174] reconstruction loss: 0.0000151  rel_err: 0.8565
+[Epoch 4 Iter 650/1174] reconstruction loss: 0.0000213  rel_err: 0.8699
+[Epoch 4 Iter 700/1174] reconstruction loss: 0.0000166  rel_err: 0.8691
+[Epoch 4 Iter 750/1174] reconstruction loss: 0.0000162  rel_err: 0.8377
+[Epoch 4 Iter 800/1174] reconstruction loss: 0.0000212  rel_err: 0.8225
+[Epoch 4 Iter 850/1174] reconstruction loss: 0.0000205  rel_err: 0.8282
+[Epoch 4 Iter 900/1174] reconstruction loss: 0.0000181  rel_err: 0.8301
+[Epoch 4 Iter 950/1174] reconstruction loss: 0.0000334  rel_err: 0.8528
+[Epoch 4 Iter 1000/1174] reconstruction loss: 0.0000218  rel_err: 0.8175
+[Epoch 4 Iter 1050/1174] reconstruction loss: 0.0000194  rel_err: 0.8151
+[Epoch 4 Iter 1100/1174] reconstruction loss: 0.0000219  rel_err: 0.8846
+[Epoch 4 Iter 1150/1174] reconstruction loss: 0.0000270  rel_err: 0.8093
+[Epoch 4] reconstruction loss: 0.0000219  rel_err: 0.8314
+[Epoch 5 Iter 50/1174] reconstruction loss: 0.0000239  rel_err: 0.8164
+[Epoch 5 Iter 100/1174] reconstruction loss: 0.0000210  rel_err: 0.7684
+[Epoch 5 Iter 150/1174] reconstruction loss: 0.0000177  rel_err: 0.8252
+[Epoch 5 Iter 200/1174] reconstruction loss: 0.0000177  rel_err: 0.8268
+[Epoch 5 Iter 250/1174] reconstruction loss: 0.0000190  rel_err: 0.8581
+[Epoch 5 Iter 300/1174] reconstruction loss: 0.0000199  rel_err: 0.8428
+[Epoch 5 Iter 350/1174] reconstruction loss: 0.0000163  rel_err: 0.8762
+[Epoch 5 Iter 400/1174] reconstruction loss: 0.0000208  rel_err: 0.8408
+[Epoch 5 Iter 450/1174] reconstruction loss: 0.0000358  rel_err: 0.8126
+[Epoch 5 Iter 500/1174] reconstruction loss: 0.0000186  rel_err: 0.8120
+[Epoch 5 Iter 550/1174] reconstruction loss: 0.0000346  rel_err: 0.8122
+[Epoch 5 Iter 600/1174] reconstruction loss: 0.0000162  rel_err: 0.8727
+[Epoch 5 Iter 650/1174] reconstruction loss: 0.0000197  rel_err: 0.8640
+[Epoch 5 Iter 700/1174] reconstruction loss: 0.0000180  rel_err: 0.8452
+[Epoch 5 Iter 750/1174] reconstruction loss: 0.0000182  rel_err: 0.7635
+[Epoch 5 Iter 800/1174] reconstruction loss: 0.0000229  rel_err: 0.8595
+[Epoch 5 Iter 850/1174] reconstruction loss: 0.0000248  rel_err: 0.8476
+[Epoch 5 Iter 900/1174] reconstruction loss: 0.0000190  rel_err: 0.8152
+[Epoch 5 Iter 950/1174] reconstruction loss: 0.0000181  rel_err: 0.7798
+[Epoch 5 Iter 1000/1174] reconstruction loss: 0.0000280  rel_err: 0.8205
+[Epoch 5 Iter 1050/1174] reconstruction loss: 0.0000211  rel_err: 0.8450
+[Epoch 5 Iter 1100/1174] reconstruction loss: 0.0000221  rel_err: 0.8078
+[Epoch 5 Iter 1150/1174] reconstruction loss: 0.0000143  rel_err: 0.8211
+[Epoch 5] reconstruction loss: 0.0000218  rel_err: 0.8309
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 6 Iter 50/1174] reconstruction loss: 0.0000215  rel_err: 0.8407
+[Epoch 6 Iter 100/1174] reconstruction loss: 0.0000201  rel_err: 0.8418
+[Epoch 6 Iter 150/1174] reconstruction loss: 0.0000179  rel_err: 0.7834
+[Epoch 6 Iter 200/1174] reconstruction loss: 0.0000213  rel_err: 0.8357
+[Epoch 6 Iter 250/1174] reconstruction loss: 0.0000279  rel_err: 0.8164
+[Epoch 6 Iter 300/1174] reconstruction loss: 0.0000182  rel_err: 0.8117
+[Epoch 6 Iter 350/1174] reconstruction loss: 0.0000240  rel_err: 0.8213
+[Epoch 6 Iter 400/1174] reconstruction loss: 0.0000226  rel_err: 0.8715
+[Epoch 6 Iter 450/1174] reconstruction loss: 0.0000196  rel_err: 0.8293
+[Epoch 6 Iter 500/1174] reconstruction loss: 0.0000208  rel_err: 0.8462
+[Epoch 6 Iter 550/1174] reconstruction loss: 0.0000179  rel_err: 0.8414
+[Epoch 6 Iter 600/1174] reconstruction loss: 0.0000206  rel_err: 0.8104
+[Epoch 6 Iter 650/1174] reconstruction loss: 0.0000198  rel_err: 0.8163
+[Epoch 6 Iter 700/1174] reconstruction loss: 0.0000233  rel_err: 0.8057
+[Epoch 6 Iter 750/1174] reconstruction loss: 0.0000217  rel_err: 0.8759
+[Epoch 6 Iter 800/1174] reconstruction loss: 0.0000166  rel_err: 0.8084
+[Epoch 6 Iter 850/1174] reconstruction loss: 0.0000183  rel_err: 0.8692
+[Epoch 6 Iter 900/1174] reconstruction loss: 0.0000324  rel_err: 0.8736
+[Epoch 6 Iter 950/1174] reconstruction loss: 0.0000232  rel_err: 0.8414
+[Epoch 6 Iter 1000/1174] reconstruction loss: 0.0000212  rel_err: 0.8246
+[Epoch 6 Iter 1050/1174] reconstruction loss: 0.0000144  rel_err: 0.8377
+[Epoch 6 Iter 1100/1174] reconstruction loss: 0.0000371  rel_err: 0.8806
+[Epoch 6 Iter 1150/1174] reconstruction loss: 0.0000178  rel_err: 0.9006
+[Epoch 6] reconstruction loss: 0.0000218  rel_err: 0.8321
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 7 Iter 50/1174] reconstruction loss: 0.0000222  rel_err: 0.8355
+[Epoch 7 Iter 100/1174] reconstruction loss: 0.0000627  rel_err: 0.8326
+[Epoch 7 Iter 150/1174] reconstruction loss: 0.0000194  rel_err: 0.8185
+[Epoch 7 Iter 200/1174] reconstruction loss: 0.0000182  rel_err: 0.8408
+[Epoch 7 Iter 250/1174] reconstruction loss: 0.0000164  rel_err: 0.8524
+[Epoch 7 Iter 300/1174] reconstruction loss: 0.0000243  rel_err: 0.8838
+[Epoch 7 Iter 350/1174] reconstruction loss: 0.0000197  rel_err: 0.8266
+[Epoch 7 Iter 400/1174] reconstruction loss: 0.0000163  rel_err: 0.8446
+[Epoch 7 Iter 450/1174] reconstruction loss: 0.0000143  rel_err: 0.7985
+[Epoch 7 Iter 500/1174] reconstruction loss: 0.0000232  rel_err: 0.8191
+[Epoch 7 Iter 550/1174] reconstruction loss: 0.0000184  rel_err: 0.8193
+[Epoch 7 Iter 600/1174] reconstruction loss: 0.0000156  rel_err: 0.8191
+[Epoch 7 Iter 650/1174] reconstruction loss: 0.0000172  rel_err: 0.8916
+[Epoch 7 Iter 700/1174] reconstruction loss: 0.0000188  rel_err: 0.7962
+[Epoch 7 Iter 750/1174] reconstruction loss: 0.0000148  rel_err: 0.8225
+[Epoch 7 Iter 800/1174] reconstruction loss: 0.0000192  rel_err: 0.8804
+[Epoch 7 Iter 850/1174] reconstruction loss: 0.0000256  rel_err: 0.8399
+[Epoch 7 Iter 900/1174] reconstruction loss: 0.0000247  rel_err: 0.8349
+[Epoch 7 Iter 950/1174] reconstruction loss: 0.0000144  rel_err: 0.8232
+[Epoch 7 Iter 1000/1174] reconstruction loss: 0.0000242  rel_err: 0.7958
+[Epoch 7 Iter 1050/1174] reconstruction loss: 0.0000220  rel_err: 0.8101
+[Epoch 7 Iter 1100/1174] reconstruction loss: 0.0000182  rel_err: 0.8698
+[Epoch 7 Iter 1150/1174] reconstruction loss: 0.0000178  rel_err: 0.7901
+[Epoch 7] reconstruction loss: 0.0000219  rel_err: 0.8321
+[Epoch 8 Iter 50/1174] reconstruction loss: 0.0000172  rel_err: 0.8226
+[Epoch 8 Iter 100/1174] reconstruction loss: 0.0000155  rel_err: 0.8043
+[Epoch 8 Iter 150/1174] reconstruction loss: 0.0000184  rel_err: 0.8632
+[Epoch 8 Iter 200/1174] reconstruction loss: 0.0000179  rel_err: 0.8402
+[Epoch 8 Iter 250/1174] reconstruction loss: 0.0000238  rel_err: 0.8233
+[Epoch 8 Iter 300/1174] reconstruction loss: 0.0000154  rel_err: 0.8030
+[Epoch 8 Iter 350/1174] reconstruction loss: 0.0000154  rel_err: 0.8065
+[Epoch 8 Iter 400/1174] reconstruction loss: 0.0000128  rel_err: 0.7959
+[Epoch 8 Iter 450/1174] reconstruction loss: 0.0000207  rel_err: 0.8513
+[Epoch 8 Iter 500/1174] reconstruction loss: 0.0000200  rel_err: 0.8207
+[Epoch 8 Iter 550/1174] reconstruction loss: 0.0000143  rel_err: 0.8650
+[Epoch 8 Iter 600/1174] reconstruction loss: 0.0000192  rel_err: 0.7782
+[Epoch 8 Iter 650/1174] reconstruction loss: 0.0000187  rel_err: 0.8556
+[Epoch 8 Iter 700/1174] reconstruction loss: 0.0000153  rel_err: 0.8428
+[Epoch 8 Iter 750/1174] reconstruction loss: 0.0000188  rel_err: 0.8563
+[Epoch 8 Iter 800/1174] reconstruction loss: 0.0000204  rel_err: 0.8099
+[Epoch 8 Iter 850/1174] reconstruction loss: 0.0000290  rel_err: 0.8226
+[Epoch 8 Iter 900/1174] reconstruction loss: 0.0000192  rel_err: 0.8055
+[Epoch 8 Iter 950/1174] reconstruction loss: 0.0000236  rel_err: 0.7964
+[Epoch 8 Iter 1000/1174] reconstruction loss: 0.0000183  rel_err: 0.8662
+[Epoch 8 Iter 1050/1174] reconstruction loss: 0.0000177  rel_err: 0.8105
+[Epoch 8 Iter 1100/1174] reconstruction loss: 0.0000187  rel_err: 0.8685
+[Epoch 8 Iter 1150/1174] reconstruction loss: 0.0000226  rel_err: 0.8545
+[Epoch 8] reconstruction loss: 0.0000223  rel_err: 0.8370
+[Epoch 9 Iter 50/1174] reconstruction loss: 0.0000241  rel_err: 0.8226
+[Epoch 9 Iter 100/1174] reconstruction loss: 0.0000218  rel_err: 0.8324
+[Epoch 9 Iter 150/1174] reconstruction loss: 0.0000324  rel_err: 0.7952
+[Epoch 9 Iter 200/1174] reconstruction loss: 0.0000168  rel_err: 0.8419
+[Epoch 9 Iter 250/1174] reconstruction loss: 0.0000260  rel_err: 0.8756
+[Epoch 9 Iter 300/1174] reconstruction loss: 0.0000146  rel_err: 0.7609
+[Epoch 9 Iter 350/1174] reconstruction loss: 0.0000143  rel_err: 0.8308
+[Epoch 9 Iter 400/1174] reconstruction loss: 0.0000189  rel_err: 0.8709
+[Epoch 9 Iter 450/1174] reconstruction loss: 0.0000276  rel_err: 0.8106
+[Epoch 9 Iter 500/1174] reconstruction loss: 0.0000229  rel_err: 0.7970
+[Epoch 9 Iter 550/1174] reconstruction loss: 0.0000430  rel_err: 0.8086
+[Epoch 9 Iter 600/1174] reconstruction loss: 0.0000319  rel_err: 0.8129
+[Epoch 9 Iter 650/1174] reconstruction loss: 0.0000353  rel_err: 0.7962
+[Epoch 9 Iter 700/1174] reconstruction loss: 0.0000174  rel_err: 0.8268
+[Epoch 9 Iter 750/1174] reconstruction loss: 0.0000237  rel_err: 0.8297
+[Epoch 9 Iter 800/1174] reconstruction loss: 0.0000201  rel_err: 0.7501
+[Epoch 9 Iter 850/1174] reconstruction loss: 0.0000328  rel_err: 0.8475
+[Epoch 9 Iter 900/1174] reconstruction loss: 0.0000176  rel_err: 0.8184
+[Epoch 9 Iter 950/1174] reconstruction loss: 0.0000172  rel_err: 0.7901
+[Epoch 9 Iter 1000/1174] reconstruction loss: 0.0000298  rel_err: 0.7949
+[Epoch 9 Iter 1050/1174] reconstruction loss: 0.0000198  rel_err: 0.8468
+[Epoch 9 Iter 1100/1174] reconstruction loss: 0.0000244  rel_err: 0.8929
+[Epoch 9 Iter 1150/1174] reconstruction loss: 0.0000224  rel_err: 0.7859
+[Epoch 9] reconstruction loss: 0.0000217  rel_err: 0.8312
+saved checkpoint: /Users/vincentclifford/protein-localization/runs/cov_unsup_compare/deeploc_seed921/cov_unsup_dc48.pt
+[Epoch 10 Iter 50/1174] reconstruction loss: 0.0000190  rel_err: 0.7755
+[Epoch 10 Iter 100/1174] reconstruction loss: 0.0000157  rel_err: 0.8532
+[Epoch 10 Iter 150/1174] reconstruction loss: 0.0000193  rel_err: 0.8550
+[Epoch 10 Iter 200/1174] reconstruction loss: 0.0000222  rel_err: 0.8372
+[Epoch 10 Iter 250/1174] reconstruction loss: 0.0000175  rel_err: 0.8100
+[Epoch 10 Iter 300/1174] reconstruction loss: 0.0000188  rel_err: 0.8457
+[Epoch 10 Iter 350/1174] reconstruction loss: 0.0000371  rel_err: 0.8647
+[Epoch 10 Iter 400/1174] reconstruction loss: 0.0000212  rel_err: 0.8350
+[Epoch 10 Iter 450/1174] reconstruction loss: 0.0000155  rel_err: 0.8610
+[Epoch 10 Iter 500/1174] reconstruction loss: 0.0000149  rel_err: 0.8584
+[Epoch 10 Iter 550/1174] reconstruction loss: 0.0000197  rel_err: 0.8273
+[Epoch 10 Iter 600/1174] reconstruction loss: 0.0000145  rel_err: 0.8639
+[Epoch 10 Iter 650/1174] reconstruction loss: 0.0000192  rel_err: 0.8564
+[Epoch 10 Iter 700/1174] reconstruction loss: 0.0000166  rel_err: 0.8453
+[Epoch 10 Iter 750/1174] reconstruction loss: 0.0000237  rel_err: 0.8238
+[Epoch 10 Iter 800/1174] reconstruction loss: 0.0000190  rel_err: 0.8016
+[Epoch 10 Iter 850/1174] reconstruction loss: 0.0000263  rel_err: 0.7974
+[Epoch 10 Iter 900/1174] reconstruction loss: 0.0000260  rel_err: 0.8655
+[Epoch 10 Iter 950/1174] reconstruction loss: 0.0000166  rel_err: 0.8207
+[Epoch 10 Iter 1000/1174] reconstruction loss: 0.0000224  rel_err: 0.8466
+[Epoch 10 Iter 1050/1174] reconstruction loss: 0.0000236  rel_err: 0.8305
+[Epoch 10 Iter 1100/1174] reconstruction loss: 0.0000231  rel_err: 0.8256
+[Epoch 10 Iter 1150/1174] reconstruction loss: 0.0000200  rel_err: 0.8109
+[Epoch 10] reconstruction loss: 0.0000218  rel_err: 0.8312
+[Epoch 11 Iter 50/1174] reconstruction loss: 0.0000214  rel_err: 0.8355
+[Epoch 11 Iter 100/1174] reconstruction loss: 0.0000291  rel_err: 0.8706
+[Epoch 11 Iter 150/1174] reconstruction loss: 0.0000241  rel_err: 0.7928
+[Epoch 11 Iter 200/1174] reconstruction loss: 0.0000289  rel_err: 0.8173
+[Epoch 11 Iter 250/1174] reconstruction loss: 0.0000211  rel_err: 0.8467
+[Epoch 11 Iter 300/1174] reconstruction loss: 0.0000187  rel_err: 0.8131
+[Epoch 11 Iter 350/1174] reconstruction loss: 0.0000189  rel_err: 0.8241
+[Epoch 11 Iter 400/1174] reconstruction loss: 0.0000146  rel_err: 0.8313
+[Epoch 11 Iter 450/1174] reconstruction loss: 0.0000264  rel_err: 0.7627
+[Epoch 11 Iter 500/1174] reconstruction loss: 0.0000235  rel_err: 0.8661
+[Epoch 11 Iter 550/1174] reconstruction loss: 0.0000200  rel_err: 0.8081
+[Epoch 11 Iter 600/1174] reconstruction loss: 0.0000142  rel_err: 0.8188
+[Epoch 11 Iter 650/1174] reconstruction loss: 0.0000325  rel_err: 0.8139
+[Epoch 11 Iter 700/1174] reconstruction loss: 0.0000189  rel_err: 0.8735
+[Epoch 11 Iter 750/1174] reconstruction loss: 0.0000261  rel_err: 0.8154
+[Epoch 11 Iter 800/1174] reconstruction loss: 0.0000151  rel_err: 0.8401
+[Epoch 11 Iter 850/1174] reconstruction loss: 0.0000163  rel_err: 0.8162
+[Epoch 11 Iter 900/1174] reconstruction loss: 0.0000196  rel_err: 0.8010
+[Epoch 11 Iter 950/1174] reconstruction loss: 0.0000234  rel_err: 0.8315
+[Epoch 11 Iter 1000/1174] reconstruction loss: 0.0000129  rel_err: 0.8008
+[Epoch 11 Iter 1050/1174] reconstruction loss: 0.0000309  rel_err: 0.8140
+[Epoch 11 Iter 1100/1174] reconstruction loss: 0.0000232  rel_err: 0.8469
+[Epoch 11 Iter 1150/1174] reconstruction loss: 0.0000221  rel_err: 0.8425
+[Epoch 11] reconstruction loss: 0.0000218  rel_err: 0.8320
+[Epoch 12 Iter 50/1174] reconstruction loss: 0.0000156  rel_err: 0.8069
+[Epoch 12 Iter 100/1174] reconstruction loss: 0.0000244  rel_err: 0.8484
+[Epoch 12 Iter 150/1174] reconstruction loss: 0.0000220  rel_err: 0.8120
+[Epoch 12 Iter 200/1174] reconstruction loss: 0.0000207  rel_err: 0.8362
+[Epoch 12 Iter 250/1174] reconstruction loss: 0.0000208  rel_err: 0.8842
+[Epoch 12 Iter 300/1174] reconstruction loss: 0.0000211  rel_err: 0.8590
+[Epoch 12 Iter 350/1174] reconstruction loss: 0.0000130  rel_err: 0.8196
+[Epoch 12 Iter 400/1174] reconstruction loss: 0.0000168  rel_err: 0.8569
+[Epoch 12 Iter 450/1174] reconstruction loss: 0.0000195  rel_err: 0.8611
+[Epoch 12 Iter 500/1174] reconstruction loss: 0.0000251  rel_err: 0.8438
+[Epoch 12 Iter 550/1174] reconstruction loss: 0.0000203  rel_err: 0.8056
+[Epoch 12 Iter 600/1174] reconstruction loss: 0.0000228  rel_err: 0.8053
+[Epoch 12 Iter 650/1174] reconstruction loss: 0.0000191  rel_err: 0.8243
+[Epoch 12 Iter 700/1174] reconstruction loss: 0.0000182  rel_err: 0.8130
+[Epoch 12 Iter 750/1174] reconstruction loss: 0.0000143  rel_err: 0.8664
+[Epoch 12 Iter 800/1174] reconstruction loss: 0.0000282  rel_err: 0.8797
+[Epoch 12 Iter 850/1174] reconstruction loss: 0.0000168  rel_err: 0.8189
+[Epoch 12 Iter 900/1174] reconstruction loss: 0.0000196  rel_err: 0.7944
+[Epoch 12 Iter 950/1174] reconstruction loss: 0.0000192  rel_err: 0.7903
+[Epoch 12 Iter 1000/1174] reconstruction loss: 0.0000200  rel_err: 0.8409
+[Epoch 12 Iter 1050/1174] reconstruction loss: 0.0000308  rel_err: 0.8052
+[Epoch 12 Iter 1100/1174] reconstruction loss: 0.0000223  rel_err: 0.8178
+[Epoch 12 Iter 1150/1174] reconstruction loss: 0.0000283  rel_err: 0.8646
+[Epoch 12] reconstruction loss: 0.0000218  rel_err: 0.8315
+[Epoch 13 Iter 50/1174] reconstruction loss: 0.0000173  rel_err: 0.8747
+[Epoch 13 Iter 100/1174] reconstruction loss: 0.0000279  rel_err: 0.8287
+[Epoch 13 Iter 150/1174] reconstruction loss: 0.0000137  rel_err: 0.8170
+[Epoch 13 Iter 200/1174] reconstruction loss: 0.0000162  rel_err: 0.8702
+[Epoch 13 Iter 250/1174] reconstruction loss: 0.0000151  rel_err: 0.8267
+[Epoch 13 Iter 300/1174] reconstruction loss: 0.0000207  rel_err: 0.8194
+[Epoch 13 Iter 350/1174] reconstruction loss: 0.0000154  rel_err: 0.8341
+[Epoch 13 Iter 400/1174] reconstruction loss: 0.0000226  rel_err: 0.8375
+[Epoch 13 Iter 450/1174] reconstruction loss: 0.0000285  rel_err: 0.8431
+[Epoch 13 Iter 500/1174] reconstruction loss: 0.0000206  rel_err: 0.8264
+[Epoch 13 Iter 550/1174] reconstruction loss: 0.0000204  rel_err: 0.8447
+[Epoch 13 Iter 600/1174] reconstruction loss: 0.0000233  rel_err: 0.8056
+[Epoch 13 Iter 650/1174] reconstruction loss: 0.0000462  rel_err: 0.8748
+[Epoch 13 Iter 700/1174] reconstruction loss: 0.0000253  rel_err: 0.8305
+[Epoch 13 Iter 750/1174] reconstruction loss: 0.0000149  rel_err: 0.8582
+[Epoch 13 Iter 800/1174] reconstruction loss: 0.0000184  rel_err: 0.8166
+[Epoch 13 Iter 850/1174] reconstruction loss: 0.0000185  rel_err: 0.8239
+[Epoch 13 Iter 900/1174] reconstruction loss: 0.0000263  rel_err: 0.7980
+[Epoch 13 Iter 950/1174] reconstruction loss: 0.0000177  rel_err: 0.8445
+[Epoch 13 Iter 1000/1174] reconstruction loss: 0.0000126  rel_err: 0.8719
+[Epoch 13 Iter 1050/1174] reconstruction loss: 0.0000241  rel_err: 0.8178
+[Epoch 13 Iter 1100/1174] reconstruction loss: 0.0000197  rel_err: 0.8131
+[Epoch 13 Iter 1150/1174] reconstruction loss: 0.0000152  rel_err: 0.8182
+[Epoch 13] reconstruction loss: 0.0000219  rel_err: 0.8331
+early stopping (no >0.5% improvement for 10 epochs)
