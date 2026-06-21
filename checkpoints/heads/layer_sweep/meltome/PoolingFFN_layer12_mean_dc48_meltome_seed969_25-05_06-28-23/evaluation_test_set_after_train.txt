@@ -1,0 +1,7 @@
+Number of draws: 200 
+Spearman R: 0.6951
+Spearman p-value: 1.0779e-197
+Spearman stderr: 0.0146
+MSE: 2475.1953125
+MAE: 49.5781860
+Number of proteins: 1366

@@ -1,0 +1,28 @@
+experiment_name: meltome_cov_dc8_seed657
+seed: 657
+eval_on_test: true
+num_epochs: 5000
+batch_size: 200
+log_iterations: 100
+patience: 80
+optimizer_parameters:
+  lr: 0.0001
+loss_function: MeltomeMSELoss
+target: meltome
+max_length: 6000
+embedding_mode: lm
+train_embeddings: data_files/flip_meltome/prepared/human_cell/human_cell_train_layer24.h5
+val_embeddings: data_files/flip_meltome/prepared/human_cell/human_cell_val_layer24.h5
+test_embeddings: data_files/flip_meltome/prepared/human_cell/human_cell_test_layer24.h5
+train_remapping: data_files/flip_meltome/prepared/human_cell/human_cell_train_remapped.fasta
+val_remapping: data_files/flip_meltome/prepared/human_cell/human_cell_val_remapped.fasta
+test_remapping: data_files/flip_meltome/prepared/human_cell/human_cell_test_remapped.fasta
+key_format: hash
+model_type: PoolingFFN
+model_parameters:
+  output_dim: 1
+  hidden_dim: 32
+  n_hidden_layers: 0
+  dropout: 0.25
+  pooling: cov
+  proj_dim: 8

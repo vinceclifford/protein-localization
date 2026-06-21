@@ -1,0 +1,33 @@
+batch_size: 200
+checkpoint:
+config: /Users/shimpitech/vincent/protein-localization/sweeps/layer_seeds3_dc48_stacked/configs/meltome_layer06_hybrid_dc48_seed657.yaml
+embedding_mode: lm
+eval_on_test: yes
+experiment_name: layer06_hybrid_dc48_meltome_seed657
+key_format: hash
+log_iterations: 100
+loss_function: MeltomeMSELoss
+max_length: 6000
+model_parameters:
+  dropout: 0.25
+  hidden_dim: 32
+  n_hidden_layers: 0
+  output_dim: 1
+  pooling: hybrid
+  proj_dim: 48
+model_type: PoolingFFN
+n_draws: 200
+num_epochs: 5000
+optimizer: Adam
+optimizer_parameters:
+  lr: 0.0001
+patience: 80
+proj_dim:
+seed: 657
+target: meltome
+test_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_test_layer06.h5
+test_remapping: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_test_remapped.fasta
+train_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_train_layer06.h5
+train_remapping: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_train_remapped.fasta
+val_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_val_layer06.h5
+val_remapping: /Users/shimpitech/vincent/protein-localization/data_files/flip_meltome/prepared/human_cell/human_cell_val_remapped.fasta

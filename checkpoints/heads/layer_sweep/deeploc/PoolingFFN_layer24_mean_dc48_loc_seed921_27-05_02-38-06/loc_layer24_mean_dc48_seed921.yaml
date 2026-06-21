@@ -1,0 +1,24 @@
+experiment_name: layer24_mean_dc48_loc_seed921
+seed: 921
+eval_on_test: true
+num_epochs: 5000
+batch_size: 256
+log_iterations: 100
+patience: 80
+optimizer_parameters:
+  lr: 0.0001
+train_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_our_train_set_layer24.h5
+val_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_our_val_set_layer24.h5
+test_embeddings: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_test_set_layer24.h5
+train_remapping: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_our_train_set_remapped.fasta
+val_remapping: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_our_val_set_remapped.fasta
+test_remapping: /Users/shimpitech/vincent/protein-localization/data_files/deeploc_test_set_remapped.fasta
+key_format: hash
+model_type: PoolingFFN
+model_parameters:
+  output_dim: 10
+  hidden_dim: 32
+  n_hidden_layers: 0
+  dropout: 0.25
+  pooling: mean
+  proj_dim: 48

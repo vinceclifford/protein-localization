@@ -10,8 +10,6 @@ data_files/*.hdf5
 # Training artifacts — regenerated from configs.
 runs
 sweeps
-# Large trained probe checkpoints — distributed via Google Drive, not git.
-checkpoints/heads/
 # t-SNE feature dumps (large .npy scratch; only the PNG in results/ is kept)
 features/
 
@@ -63,8 +61,7 @@ data_files/*.h5
 # Frozen unsupervised projection checkpoints (tiny, ~270 KB each).
 # The heads/ subtree stays ignored (see above) and lives on Google Drive.
 !checkpoints/
-!checkpoints/projections/
-!checkpoints/projections/**
+!checkpoints/**
 # Final results table, workbook, significance output, and figures
 !results/
 !results/**

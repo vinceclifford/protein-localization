@@ -1,0 +1,7 @@
+Number of draws: 200 
+Accuracy: 81.64% 
+Accuracy stderr: 0.91%
+MCC: 0.7790
+MCC stderr: 0.0110
+F1: 0.8127
+F1 stderr: 0.0095

@@ -1,9 +1,10 @@
 # checkpoints
 
-Trained artifacts for the second-order pooling experiments. These are **large**
-(the head checkpoints alone are a few hundred MB) and are distributed via the
-project **Google Drive**, not git. Place the unpacked tree here to reproduce the
-figures/tables in `results/`.
+Trained artifacts for the second-order pooling experiments. Both the tiny frozen
+projections (`projections/`, ~270 KB each) and the full trained probe heads
+(`heads/`, ~370 MB total) are tracked in git, so a clone reproduces the
+figures/tables in `results/` without re-training. The large per-residue `.h5`
+embeddings are the only inputs distributed separately (Google Drive).
 
 All embeddings are ProtT5-XL **layer-24** (final layer) per-residue features.
 Canonical analysis seeds are **657 / 921 / 969**.
@@ -42,7 +43,7 @@ PoolingFFN_<task>[_layer<L>]_<method>[_dc<N>]_seed<S>_<DD-MM_HH-MM-SS>[_pretrain
 - `_pretrained` — suffix on `cov_unsup` heads, marking that L/R were loaded frozen from `projections/union/`.
 
 Each run dir holds `train_arguments.yaml`, the model checkpoint, and
-`evaluation_test_set_after_train.txt` (parsed by `scripts/collect_results.py`).
+`evaluation_test_set_after_train.txt` (parsed by `scripts/analysis/collect_results.py`).
 Training logs and TensorBoard event files are excluded to keep the archive small.
 
 ## Notes
