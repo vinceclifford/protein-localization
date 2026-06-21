@@ -25,6 +25,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import numpy as np
 
 
 PROJECT_ROOT = next(p for p in Path(__file__).resolve().parents
@@ -169,6 +170,72 @@ def plot_layer_curve(rows, task, out_dir, multi_task):
     print(f'wrote {out}')
 
 
+def _layer_grid(rows, task):
+    """Return (methods, layers, grid[methods x layers]) of seed-averaged metric."""
+    metric_key = _metric_key(task)
+    methods = [m for m in METHOD_ORDER
+               if any(r['method'] == m and r.get('layer') for r in rows)]
+    layers = sorted({r['layer'] for r in rows if r.get('layer')}, key=_layer_index)
+    grid = np.full((len(methods), len(layers)), np.nan)
+    for i, m in enumerate(methods):
+        for j, lyr in enumerate(layers):
+            vals = [r[metric_key] for r in rows
+                    if r['method'] == m and r.get('layer') == lyr and r.get(metric_key) is not None]
+            if vals:
+                grid[i, j] = statistics.mean(vals)
+    return methods, layers, grid
+
+
+def plot_layer_heatmaps(rows, tasks, out_dir):
+    """One heatmap per task in a single figure, on a SHARED color scale.
+
+    The two tasks use different metrics (Q10 % vs Spearman R), so the colour
+    encodes each task's metric **min-max normalised within the task** (0 = worst
+    cell, 1 = best) on one shared 0-1 colourbar; raw metric values are annotated
+    in each cell so absolute numbers aren't lost.
+    """
+    tasks = [t for t in tasks
+             if any(r.get('task', 'loc') == t and r.get('layer') for r in rows)]
+    if not tasks:
+        return
+
+    fig, axes = plt.subplots(1, len(tasks), figsize=(6.5 * len(tasks) + 1.5, 5.0),
+                             squeeze=False, layout='constrained')
+    axes = axes[0]
+    im = None
+    for ax, task in zip(axes, tasks):
+        trows = [r for r in rows if r.get('task', 'loc') == task]
+        methods, layers, grid = _layer_grid(trows, task)
+        finite = grid[np.isfinite(grid)]
+        lo, hi = (float(finite.min()), float(finite.max())) if finite.size else (0.0, 1.0)
+        norm = (grid - lo) / (hi - lo) if hi > lo else np.nan_to_num(grid) * 0.0
+
+        im = ax.imshow(norm, aspect='auto', cmap='viridis', vmin=0, vmax=1)
+        # Colour is per-task normalised, so cell values stay in their natural
+        # units (Q10 % for loc, raw Spearman R for meltome).
+        fmt = _fmt(task)
+        for i in range(len(methods)):
+            for j in range(len(layers)):
+                if np.isfinite(grid[i, j]):
+                    ax.text(j, i, format(grid[i, j], fmt), ha='center', va='center',
+                            color='white' if norm[i, j] < 0.5 else 'black',
+                            fontsize=10, fontweight='bold')
+        ax.set_xticks(range(len(layers)))
+        ax.set_xticklabels([f'L{int(l)}' if l != 'Stacked' else 'Stacked' for l in layers])
+        ax.set_yticks(range(len(methods)))
+        ax.set_yticklabels(methods)
+        ax.set_xlabel('ProtT5 layer')
+        ax.set_title(f'{_task_title(task)}\n({_axis_label(task)})')
+
+    cbar = fig.colorbar(im, ax=axes, shrink=0.85, pad=0.02)
+    cbar.set_label('within-task normalised score', fontsize=10)
+    fig.suptitle('Layer sweep — pooling method × layer', fontsize=15)
+    out = out_dir / 'layer_heatmap.png'
+    fig.savefig(out)
+    plt.close(fig)
+    print(f'wrote {out}')
+
+
 def write_summary(rows, task, out_dir, multi_task):
     metric_key = _metric_key(task)
     fmt = _fmt(task)
@@ -230,6 +297,8 @@ def main() -> None:
         task_rows = [r for r in rows if r.get('task', 'loc') == task]
         plot_layer_curve(task_rows, task, out_dir, multi_task)
         write_summary(task_rows, task, out_dir, multi_task)
+
+    plot_layer_heatmaps(rows, tasks_present, out_dir)
 
     print('\nDone.')
 

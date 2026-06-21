@@ -1,0 +1,21 @@
+
+=== DeepLoc (McNemar's exact, matched d_c=48, Fisher across seeds) ===
+comparison        seed 657        seed 921        seed 969        Fisher (all seeds)
+------------------------------------------------------------------------------------
+Cov vs Mean       2.173e-07       2.917e-04       4.283e-02       1.038e-09
+Hybrid vs Mean    4.014e-06       2.527e-04       2.095e-03       8.268e-10
+Hybrid vs Cov     3.875e-01       8.831e-01       3.777e-01       6.642e-01  (NS)
+
+=== Meltome — Wilcoxon on |error| (matched d_c=48, Fisher across seeds) ===
+comparison        seed 657        seed 921        seed 969        Fisher (all seeds)
+------------------------------------------------------------------------------------
+Cov vs Mean       3.449e-02       3.124e-10       2.501e-05       1.831e-13
+Hybrid vs Mean    5.362e-03       5.069e-03       1.317e-28       1.026e-29
+Hybrid vs Cov     8.422e-02       2.852e-04       1.144e-37       1.285e-38
+
+=== Meltome — Williams' on Spearman R (matched d_c=48, Fisher across seeds) ===
+comparison        seed 657        seed 921        seed 969        Fisher (all seeds)
+------------------------------------------------------------------------------------
+Cov vs Mean       4.995e-01       5.859e-02       1.192e-01       7.906e-02  (NS)
+Hybrid vs Mean    1.703e-01       9.291e-01       1.668e-01       2.966e-01  (NS)
+Hybrid vs Cov     4.342e-03       3.593e-02       5.452e-01       4.618e-03

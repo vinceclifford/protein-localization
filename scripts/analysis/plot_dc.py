@@ -629,8 +629,8 @@ def main() -> None:
         plot_bars_averaged(task_rows, task, out_dir, multi_task, args, zoom=False)
         plot_dc_curve_averaged(task_rows, task, out_dir, multi_task, args, zoom=False)
         plot_dc_curve_per_seed(task_rows, task, out_dir, multi_task, args, zoom=False)
-        plot_head_to_head(task_rows, task, out_dir, multi_task, args,
-                          dc=args.head_to_head_dc, zoom=False)
+        for dc in DC_VALUES:
+            plot_head_to_head(task_rows, task, out_dir, multi_task, args, dc=dc, zoom=False)
         plot_seed_scatter(task_rows, task, out_dir, multi_task, args, zoom=False)
 
         if args.zoom:
@@ -638,8 +638,8 @@ def main() -> None:
             plot_bars_averaged(task_rows, task, out_dir, multi_task, args, zoom=True)
             plot_dc_curve_averaged(task_rows, task, out_dir, multi_task, args, zoom=True)
             plot_dc_curve_per_seed(task_rows, task, out_dir, multi_task, args, zoom=True)
-            plot_head_to_head(task_rows, task, out_dir, multi_task, args,
-                              dc=args.head_to_head_dc, zoom=True)
+            for dc in DC_VALUES:
+                plot_head_to_head(task_rows, task, out_dir, multi_task, args, dc=dc, zoom=True)
             plot_seed_scatter(task_rows, task, out_dir, multi_task, args, zoom=True)
 
     write_summary(rows, out_dir)

@@ -36,7 +36,8 @@ Read `runs/` (or `checkpoints/heads/`) and produce everything in `results/`.
 |---|---|
 | `collect_results.py` | Parse run dirs → master `results.csv` (`--runs-dir`, parses the `layer` token). |
 | `plot_dc.py` | d_c sweep figures (bars, d_c curves, head-to-head). Ignores layer-sweep rows. |
-| `plot_layers.py` | Layer sweep figures (metric vs layer). Uses only layer-sweep rows. |
+| `plot_efficiency.py` | Size-vs-performance curve: metric vs pooled feature dim (log scale), mean line + equal-size crossover. |
+| `plot_layers.py` | Layer sweep figures — metric-vs-layer curve **and** a method×layer heatmap. Layer-sweep rows only. |
 | `make_results_xlsx.py` | `results.csv` → `results.xlsx` with one tab per task. |
 | `significance_tests.py` | Per-seed McNemar / Wilcoxon / Williams + Fisher combination. |
 | `extract_features.py` | Dump test-set representations (random / untrained-cov / mean / trained-cov) as `features_*.npy`. |

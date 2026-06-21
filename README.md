@@ -80,7 +80,8 @@ Two training regimes for the projections:
     └── analysis/                       # results, figures, stats
         ├── collect_results.py          #   Parse run dirs → master results.csv (--runs-dir, layer column)
         ├── plot_dc.py                  #   d_c sweep figures (bars, d_c curves, head-to-head; --seeds)
-        ├── plot_layers.py              #   Layer sweep figures (metric vs layer; reads master results.csv)
+        ├── plot_efficiency.py          #   Size-vs-performance curve (feature dim log scale + crossover)
+        ├── plot_layers.py              #   Layer sweep figures: metric-vs-layer curve + method×layer heatmap
         ├── make_results_xlsx.py        #   results.csv → results.xlsx (one tab per task)
         ├── significance_tests.py       #   Per-seed tests + Fisher (McNemar / Wilcoxon / Williams)
         ├── extract_features.py         #   Dump test-set representations (random/untrained/mean/cov)

@@ -11,10 +11,12 @@ results/
 │                                 (all groups, both tasks — see columns below)
 ├── results.xlsx                 derived human view: one tab per task (deeploc / meltome)
 ├── figures/
-│   ├── dc_sweep/                 scripts/analysis/plot_dc.py output
-│   └── layer_sweep/              scripts/analysis/plot_layers.py output
+│   ├── dc_sweep/                 scripts/analysis/plot_dc.py + plot_efficiency.py output
+│   ├── layer_sweep/              scripts/analysis/plot_layers.py output (curve + heatmap)
+│   └── tsne_umap/                scripts/analysis/{extract_features,plot_tsne}.py output (UMAP + t-SNE)
 ├── reconstruction_summary.csv    Part A: projection-dataset reconstruction (rel_err)
-└── significance.txt              per-seed tests + Fisher combination across seeds
+└── significance/
+    └── significance.txt          per-seed tests + Fisher combination across seeds
 ```
 
 `results.csv` is the machine-readable source the plot scripts read; `results.xlsx`
@@ -41,6 +43,14 @@ unsupervised heads, plotted by `plot_dc.py`); **non-empty ⇒ layer sweep**
 (plotted by `plot_layers.py`). Both scripts read this one file and self-filter.
 
 ## Regenerate
+
+**Everything at once** (tables + all figures + significance + UMAP/t-SNE):
+
+```bash
+bash scripts/make_all_results.sh          # UMAP projections (pass 'tsne' for t-SNE)
+```
+
+Or step by step:
 
 ```bash
 # 1. master CSV from the organized head checkpoints
