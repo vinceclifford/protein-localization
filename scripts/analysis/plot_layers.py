@@ -102,8 +102,12 @@ def plot_layer_curve(rows, task, out_dir, multi_task):
     metric_key = _metric_key(task)
     fig, ax = plt.subplots(figsize=(9, 6))
     all_y = []
+
     layers_present = sorted({r['layer'] for r in rows if r.get('layer')}, key=_layer_index)
-    x_pos = {lyr: i for i, lyr in enumerate(layers_present)}
+    cont_layers = [l for l in layers_present if l != 'Stacked']   # single layers — connected
+    has_stacked = 'Stacked' in layers_present
+    x_pos = {l: i for i, l in enumerate(cont_layers)}
+    stacked_x = len(cont_layers)                                  # detached (no connecting line)
 
     for method in METHOD_ORDER:
         by_layer = defaultdict(list)
@@ -112,15 +116,26 @@ def plot_layer_curve(rows, task, out_dir, multi_task):
                 by_layer[r['layer']].append(r[metric_key])
         if not by_layer:
             continue
-        lyrs = sorted(by_layer, key=_layer_index)
-        xs = [x_pos[l] for l in lyrs]
-        means = [_stat(by_layer[l])[0] for l in lyrs]
-        stds = [_stat(by_layer[l])[1] for l in lyrs]
+        color = METHOD_COLOR.get(method, 'gray')
         n = max(len(v) for v in by_layer.values())
-        ax.errorbar(xs, means, yerr=stds, marker='o', label=f'{method} (n={n})',
-                    color=METHOD_COLOR.get(method, 'gray'), capsize=4,
-                    linewidth=2.5, markersize=9)
-        all_y.extend(means)
+
+        # connected line over the single (numeric) layers only
+        cl = [l for l in cont_layers if l in by_layer]
+        if cl:
+            xs = [x_pos[l] for l in cl]
+            means = [_stat(by_layer[l])[0] for l in cl]
+            stds = [_stat(by_layer[l])[1] for l in cl]
+            ax.errorbar(xs, means, yerr=stds, marker='o', label=f'{method} (n={n})',
+                        color=color, capsize=4, linewidth=2.5, markersize=9)
+            all_y.extend(means)
+
+        # 'Stacked' is the all-layers concatenation, not a deeper layer — draw it
+        # as a detached marker (no connecting line) to the right of the axis.
+        if has_stacked and 'Stacked' in by_layer:
+            m, s = _stat(by_layer['Stacked'])
+            ax.errorbar([stacked_x], [m], yerr=[s], marker='o', linestyle='None',
+                        color=color, capsize=4, markersize=9)
+            all_y.append(m)
 
     if not all_y:
         plt.close(fig)
@@ -130,14 +145,22 @@ def plot_layer_curve(rows, task, out_dir, multi_task):
     lo = min(TASK_FLOOR[task], min(all_y) - pad)
     hi = max(all_y) + pad
     ax.set_ylim(lo, hi)
-    ax.set_xticks(range(len(layers_present)))
-    ax.set_xticklabels([f'layer {l}' if l != 'Stacked' else l for l in layers_present])
+
+    xticks = list(range(len(cont_layers)))
+    xticklabels = [f'L{int(l)}' for l in cont_layers]
+    if has_stacked:
+        xticks.append(stacked_x)
+        xticklabels.append('Stacked')
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(-0.5, (stacked_x + 0.5) if has_stacked else len(cont_layers) - 0.5)
     ax.set_xlabel('ProtT5 layer')
     ax.set_ylabel(_axis_label(task))
     ax.set_title(f'{_task_title(task)} — metric vs layer (avg over seeds)')
     ax.legend(loc='lower right', framealpha=0.95)
     ax.grid(alpha=0.3)
-    fig.text(0.01, 0.005, 'Error bars: stdev across seeds. Fixed d_c; Stacked = all layers concatenated.',
+    fig.text(0.01, 0.005,
+             'Error bars: stdev across seeds. Fixed d_c; Stacked = all layers concatenated (detached point).',
              fontsize=8, style='italic', color='#555555', ha='left', va='bottom')
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     out = out_dir / f'layer_curve_averaged{_suffix(task, multi_task)}.png'

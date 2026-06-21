@@ -161,7 +161,7 @@ def _paper_baseline(task: str, args):
     if task == 'loc' and args.paper_loc is not None:
         return args.paper_loc, f'paper MLP+ProtT5 (≈{args.paper_loc:g}% Q10)'
     if task == 'meltome' and args.paper_meltome is not None:
-        return args.paper_meltome, f'paper mean+MLP+ProtT5 (≈{args.paper_meltome:g})'
+        return args.paper_meltome, f'paper mean+MLP+ESM-1b (≈{args.paper_meltome:g})'
     return None, None
 
 
@@ -186,7 +186,7 @@ def plot_bars_per_seed(rows, task, out_dir, multi_task, args, zoom=False):
             colors.append(METHOD_COLOR.get(r['method'], 'gray'))
 
         ylo, yhi = _ylim(vals, task, zoom)
-        fig, ax = plt.subplots(figsize=(max(9, 0.65 * len(seed_rows)), 6))
+        fig, ax = plt.subplots(figsize=(max(10, 0.92 * len(seed_rows)), 6.5))
         ax.set_ylim(ylo, yhi)
         xs = range(len(seed_rows))
         ax.bar(xs, vals, yerr=errs, color=colors, capsize=4,
@@ -196,7 +196,8 @@ def plot_bars_per_seed(rows, task, out_dir, multi_task, args, zoom=False):
             ax.text(i, v + 0.012 * (yhi - ylo),
                     format(v, fmt), ha='center', va='bottom', fontsize=10)
         ax.set_xticks(list(xs))
-        ax.set_xticklabels(labels, fontsize=10)
+        ax.set_xticklabels(labels, fontsize=9)
+        ax.set_xlim(-0.6, len(seed_rows) - 0.4)
         ax.set_ylabel(_axis_label(task))
         ax.set_title(f'{_task_title(task)} — pooling sweep (seed {seed})')
 
@@ -243,7 +244,7 @@ def plot_bars_averaged(rows, task, out_dir, multi_task, args, zoom=False):
     if not means:
         return
     ylo, yhi = _ylim(means, task, zoom)
-    fig, ax = plt.subplots(figsize=(max(9, 0.65 * len(means)), 6))
+    fig, ax = plt.subplots(figsize=(max(10, 0.92 * len(means)), 6.5))
     ax.set_ylim(ylo, yhi)
     xs = range(len(means))
     ax.bar(xs, means, yerr=stds, color=colors, capsize=4,
@@ -256,7 +257,8 @@ def plot_bars_averaged(rows, task, out_dir, multi_task, args, zoom=False):
         ax.text(i, n_label_y, f'n={n}', ha='center', va='center',
                 fontsize=9, color='white', fontweight='bold')
     ax.set_xticks(list(xs))
-    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_xlim(-0.6, len(means) - 0.4)
     ax.set_ylabel(_axis_label(task))
     ax.set_title(f'{_task_title(task)} — pooling sweep (avg over seeds)')
 
@@ -473,7 +475,7 @@ def plot_seed_scatter(rows, task, out_dir, multi_task, args, zoom=False):
     entries = sorted(grouped.keys(),
                      key=lambda k: (METHOD_ORDER.index(k[0]), k[1] or -1))
 
-    fig, ax = plt.subplots(figsize=(max(9, 0.65 * len(entries)), 6))
+    fig, ax = plt.subplots(figsize=(max(10, 0.92 * len(entries)), 6.5))
     seeds_sorted = sorted({r['seed'] for r in rows if r['seed'] is not None})
     seed_markers = {s: m for s, m in zip(seeds_sorted, 'osDv^P*X')}
 
@@ -494,7 +496,8 @@ def plot_seed_scatter(rows, task, out_dir, multi_task, args, zoom=False):
 
     labels = [cell_label(*k) for k in entries]
     ax.set_xticks(range(len(entries)))
-    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_xlim(-0.6, len(entries) - 0.4)
     ax.set_ylabel(_axis_label(task))
     ax.set_title(f'{_task_title(task)} — per-seed scatter')
 
