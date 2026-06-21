@@ -39,8 +39,12 @@ def reduce_2d(X: np.ndarray, method: str, seed: int) -> np.ndarray:
         return reducer.fit_transform(X)
     elif method == 'tsne':
         from sklearn.manifold import TSNE
-        return TSNE(perplexity=30, n_iter=1000,
-                    random_state=seed, init='pca').fit_transform(X)
+        # scikit-learn >=1.5 renamed n_iter -> max_iter
+        try:
+            tsne = TSNE(perplexity=30, max_iter=1000, random_state=seed, init='pca')
+        except TypeError:
+            tsne = TSNE(perplexity=30, n_iter=1000, random_state=seed, init='pca')
+        return tsne.fit_transform(X)
     else:
         raise ValueError(method)
 

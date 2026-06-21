@@ -45,9 +45,9 @@ def find_run(runs_root: Path, task: str, method: str, dc: int, seed: int) -> Pat
         pattern = f"PoolingFFN_{task}_mean_seed{seed}_*"
     else:
         pattern = f"PoolingFFN_{task}_{method}_dc{dc}_seed{seed}_*"
-    matches = [m for m in sorted(runs_root.glob(pattern)) if (m / RESULTS_FILE).exists()]
+    matches = [m for m in sorted(runs_root.rglob(pattern)) if (m / RESULTS_FILE).exists()]
     if not matches:
-        avail = sorted(p.name for p in runs_root.glob(f"PoolingFFN_{task}_{method}_*seed{seed}_*"))
+        avail = sorted(p.name for p in runs_root.rglob(f"PoolingFFN_{task}_{method}_*seed{seed}_*"))
         raise FileNotFoundError(
             f"No run for task={task} method={method} dc={dc} seed={seed} "
             f"(pattern {pattern!r}).\n  Available for this method/seed: {avail}")
