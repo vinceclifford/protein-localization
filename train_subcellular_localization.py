@@ -16,10 +16,14 @@ def train(args):
     transform = transforms.Compose([SolubilityToInt(), ToTensor()])
     train_set = EmbeddingsLocalizationDataset(args.train_embeddings, args.train_remapping, args.unknown_solubility,
                                                max_length=args.max_length, key_format=args.key_format,
-                                              embedding_mode=args.embedding_mode, transform=transform)
+                                              embedding_mode=args.embedding_mode,
+                                              parti_weights_path=getattr(args, 'train_parti_weights', None),
+                                              transform=transform)
     val_set = EmbeddingsLocalizationDataset(args.val_embeddings, args.val_remapping, args.unknown_solubility,
                                             key_format=args.key_format, max_length=args.max_length,
-                                            embedding_mode=args.embedding_mode, transform=transform)
+                                            embedding_mode=args.embedding_mode,
+                                            parti_weights_path=getattr(args, 'val_parti_weights', None),
+                                            transform=transform)
 
     if len(train_set[0][0].shape) == 2:  # if we have per residue embeddings they have an additional length dim
         collate_function = padded_permuted_collate
@@ -41,6 +45,7 @@ def train(args):
     if args.eval_on_test:
         test_set = EmbeddingsLocalizationDataset(args.test_embeddings, args.test_remapping, args.unknown_solubility,
                                                  key_format=args.key_format, embedding_mode=args.embedding_mode,
+                                                 parti_weights_path=getattr(args, 'test_parti_weights', None),
                                                  transform=transform)
         solver.evaluation(test_set, filename='test_set_after_train')
 

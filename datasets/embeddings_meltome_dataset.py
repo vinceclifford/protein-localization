@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import h5py
+import numpy as np
 import torch
 from Bio import SeqIO
 from torch.utils.data import Dataset
@@ -18,6 +19,7 @@ class EmbeddingsMeltomeDataset(Dataset):
                  key_format: str = 'hash',
                  max_length: int = float('inf'),
                  embedding_mode: str = 'lm',
+                 parti_weights_path: str = None,
                  transform=lambda x: x) -> None:
         """Create dataset.
         Args:
@@ -36,6 +38,7 @@ class EmbeddingsMeltomeDataset(Dataset):
         self.embedding_mode = embedding_mode
         if self.embedding_mode == 'lm' or self.embedding_mode == 'profiles':
             self.embeddings_file = h5py.File(embeddings_path, 'r')
+        self.parti_weights_file = h5py.File(parti_weights_path, 'r') if parti_weights_path else None
         self.meltome_metadata_list = []
         self.class_weights = torch.ones(1)
         self.one_hot_enc = []
@@ -102,6 +105,15 @@ class EmbeddingsMeltomeDataset(Dataset):
             embedding = self.one_hot_enc[index]
         else:
             raise Exception('embedding_mode {} not supported'.format(self.embedding_mode))
+
+        if self.parti_weights_file is not None:
+            alpha = self.parti_weights_file[meltome_metadata['metadata']['id']][:]
+            if alpha.shape[0] != embedding.shape[0]:
+                raise ValueError(
+                    f"PaRTI weights length {alpha.shape[0]} != embedding length {embedding.shape[0]} "
+                    f"for id {meltome_metadata['metadata']['id']}"
+                )
+            embedding = np.concatenate([embedding, alpha[:, None].astype(embedding.dtype)], axis=1)
 
         embedding, target = self.transform((embedding, meltome_metadata['target']))
 

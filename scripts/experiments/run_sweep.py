@@ -31,6 +31,7 @@ BASE_CONFIGS = {
         'hybrid':    PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'hybrid.yaml',
         'la':        PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'la.yaml',
         'la_cov':    PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'la_cov.yaml',
+        'parti':     PROJECT_ROOT / 'configs' / 'subcellular_localization' / 'parti.yaml',
     },
     'meltome': {
         'mean':      PROJECT_ROOT / 'configs' / 'meltome' / 'mean.yaml',
@@ -39,6 +40,7 @@ BASE_CONFIGS = {
         'hybrid':    PROJECT_ROOT / 'configs' / 'meltome' / 'hybrid.yaml',
         'la':        PROJECT_ROOT / 'configs' / 'meltome' / 'la.yaml',
         'la_cov':    PROJECT_ROOT / 'configs' / 'meltome' / 'la_cov.yaml',
+        'parti':     PROJECT_ROOT / 'configs' / 'meltome' / 'parti.yaml',
     },
 }
 # Frozen unsupervised projections live in one checkpoint per d_c. The directory selects
@@ -49,7 +51,7 @@ TRAIN_SCRIPTS = {
     'meltome': 'train_meltome.py',
 }
 # Methods that do not sweep over d_c (no projection dimension)
-NO_DC_METHODS = {'mean', 'la'}
+NO_DC_METHODS = {'mean', 'la', 'parti'}
 DC_VALUES = [8, 16, 24, 32, 48]
 
 
@@ -104,7 +106,7 @@ def main() -> None:
     parser.add_argument('--tag', default=None,
                         help='Sweep folder name (default: timestamped)')
     parser.add_argument('--methods', nargs='+', default=['mean', 'cov', 'hybrid', 'la', 'la_cov'],
-                        choices=['mean', 'cov', 'cov_unsup', 'hybrid', 'la', 'la_cov'],
+                        choices=['mean', 'cov', 'cov_unsup', 'hybrid', 'la', 'la_cov', 'parti'],
                         help="cov_unsup is opt-in: run scripts/run_cov_unsup_pretrain.py first "
                              "so the per-d_c checkpoints exist.")
     parser.add_argument('--dcs', nargs='+', type=int, default=DC_VALUES)

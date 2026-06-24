@@ -10,6 +10,7 @@ class PoolingFFN(nn.Module):
         'mean'   : mu = (1/L) X^T 1_L                    in R^d
         'cov'    : C  = (1/L) (X L_mat)^T (X R_mat)      in R^{d_c x d_c}, flattened
         'hybrid' : [mu ; flat(C)]                        in R^{d + d_c^2}
+        'parti'  : Pool PaRTI weighted mean, sum_i a_i x_i               in R^d
 
     L_mat, R_mat in R^{d x d_c} are two independent learnable projections (asymmetric
     bilinear pooling). They are implemented as 1x1 Conv1d layers without bias for
@@ -23,10 +24,13 @@ class PoolingFFN(nn.Module):
                  pooling: str = 'mean', proj_dim: int = 32, cov_unsup_checkpoint: str = None,
                 freeze_cov_projections: bool = True):
         super().__init__()
-        if pooling not in ('mean', 'cov', 'hybrid', 'cov_unsup'):
-            raise ValueError(f"pooling must be 'mean'|'cov'|'hybrid'|'cov_unsup', got {pooling!r}")
+        if pooling not in ('mean', 'cov', 'hybrid', 'cov_unsup', 'parti'):
+            raise ValueError(
+                f"pooling must be 'mean'|'cov'|'hybrid'|'cov_unsup'|'parti', got {pooling!r}"
+            )
         self.pooling = pooling
-        self.embeddings_dim = embeddings_dim
+        # Parti carries one extra weight
+        self.embeddings_dim = embeddings_dim - 1 if pooling == 'parti' else embeddings_dim
         self.proj_dim = proj_dim
 
         if pooling in ('cov', 'hybrid', 'cov_unsup'):
@@ -37,7 +41,9 @@ class PoolingFFN(nn.Module):
             self.proj_R = nn.Linear(embeddings_dim, proj_dim, bias=False)
 
         if pooling == 'mean':
-            pooled_dim = embeddings_dim
+            pooled_dim = self.embeddings_dim
+        elif pooling == 'parti':
+            pooled_dim = self.embeddings_dim
         elif pooling == 'cov':
             pooled_dim = proj_dim * proj_dim
         elif pooling == 'hybrid':
@@ -96,6 +102,13 @@ class PoolingFFN(nn.Module):
         counts = m.sum(-1).clamp(min=1.0)            # [B, 1]
         return (x * m).sum(-1) / counts              # [B, d]
 
+    @staticmethod
+    def _parti_pool(x: torch.Tensor, mask: torch.Tensor, alpha: torch.Tensor) -> torch.Tensor:
+        # x: [B, d, L], mask: [B, L] (True for real), alpha: [B, L] precomputed PaRTI weights
+        w = alpha * mask.to(x.dtype)                 # [B, L] zero out padding
+        w = w / w.sum(-1, keepdim=True).clamp(min=1e-9)   # renormalize over real residues
+        return (x * w.unsqueeze(1)).sum(-1)          # [B, d]
+
     def _bilinear_cov(self, x: torch.Tensor, mask: torch.Tensor, flattened: bool = True) -> torch.Tensor:
         # x: [B, d, L] -> C: [B, d_c, d_c] flattened to [B, d_c^2]
         x_t = x.transpose(-2, -1)                    # [B, L, d]
@@ -115,6 +128,11 @@ class PoolingFFN(nn.Module):
         x = x.float()
         if self.pooling == 'mean':
             pooled = self._masked_mean(x, mask)
+        elif self.pooling == 'parti':
+            # Last channel carries the precomputed PaRTI importance weights.
+            alpha = x[:, -1, :]                       # [B, L]
+            feats = x[:, :-1, :]                      # [B, d, L]
+            pooled = self._parti_pool(feats, mask, alpha)
         elif self.pooling == 'cov':
             pooled = self._bilinear_cov(x, mask)
         elif self.pooling == 'cov_unsup':

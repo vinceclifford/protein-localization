@@ -101,6 +101,7 @@ Two training regimes for the projections:
 | Hybrid [μ; flat(C)] | 2·d·d_c | d + d_c² | concatenation |
 | LightAttention | — | 2d | conv attention-weighted + max pool |
 | LightAttentionCov | 2·d·d_c | 2d + d_c² | LA + covariance branch |
+| Pool PaRTI | 0 | d | PageRank-over-attention weighted mean (precomputed, frozen) |
 
 ---
 
@@ -302,7 +303,39 @@ python scripts/significance_tests.py --runs_root <dir> --dc 48
 - DeepLoc: McNemar's exact test on per-protein correctness.
 - Meltome: Wilcoxon signed-rank on |error| and Williams' test on Spearman R.
 
+## Pool PaRTI (PageRank-based pooling baseline)
+
+A parameter-free, inference-only alternative to mean pooling. Instead of uniform `1/L`
+weights, each residue is weighted by its **PageRank importance** over the backbone's own
+attention graph (Pool PaRTI): `E_seq = Σ_i α_i · x_i`, where `α` is the stationary
+distribution of PageRank (damping 0.85) over the attention matrix max-pooled across all
+layers and heads. It adds **0 trainable parameters** and outputs dimension `d`, so it is a
+direct baseline against mean pooling.
+
+Because `α` depends only on the frozen backbone, it is precomputed **once** and cached as a
+single `[L]` vector per protein, keyed identically to the embedding H5. At train time the
+weights arrive as an extra input channel and are split off inside `PoolingFFN`
+(`pooling: 'parti'`); no attention is carried into training.
+
+**Step 1 — precompute PaRTI weights (one-time; needs the ProtT5/ProtX backbone):**
+```bash
+# repeat per split; --embeddings supplies the authoritative per-protein length L
+python scripts/data/extract_parti_weights.py \
+    --fasta data_files/deeploc_our_train_set.fasta \
+    --embeddings data_files/deeploc_our_train_set.h5 \
+    --out data_files/deeploc_our_train_set_parti.h5 \
+    --key-format fasta_descriptor
+```
+
+**Step 2 — train the probe with PaRTI pooling:**
+```bash
+python scripts/experiments/run_sweep.py --tasks loc meltome --methods parti --seeds 123 969 309
+# or a single run:
+python train_subcellular_localization.py --config configs/subcellular_localization/parti.yaml
+```
+`parti` has no `d_c` (like `mean`), so it slots straight into the head-to-head bar chart and
+the layer sweep. Weight-file paths live in `configs/{subcellular_localization,meltome}/parti.yaml`.
+
 ## Stretch goals
 
-- Pool PaRTI (PageRank-based pooling)
 - Binary membrane/soluble classification as a third task
